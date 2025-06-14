@@ -1,16 +1,26 @@
-# skin_for_real
+# SkinForReal
 
-A new Flutter project.
+**SkinForReal** is an AI-powered skincare analysis app built in 36 hours at [Bitcamp 2025](https://bit.camp/).  
+It analyzes selfies to detect dryness, acne, irritation, and inflammation using Microsoft Azure Face API and TerpAI, then offers personalized skincare advice.  
+**3rd Place Winner – Best Use of GenAI in Business** (Microsoft x Cloudforce)
 
-## Getting Started
+## Features
+- Detects acne, irritation, and dryness from daily selfies
+- Tracks user habits, product usage, and skin reactions over time
+- Generates personalized skincare advice using TerpAI's GenAI engine
+- Sends safety alerts if burns, cuts, or prolonged irritation are detected
 
-This project is a starting point for a Flutter application.
+## Built With
+- Flutter (UI)
+- Microsoft Azure Face API (Skin analysis)
+- TerpAI (GenAI personalization)
+- Firebase (Data backend)
+- Dart, Figma, GitHub
 
-A few resources to get you started if this is your first Flutter project:
+## Role
+**Lead Developer** – [Ediale Odia](https://www.linkedin.com/in/ediale-odia-4282ba267/)  
+Presented in collaboration with: [Rani Rajkumar](https://github.com/ranitarajkumar)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Awards
+**Bitcamp 2025 – Best Use of GenAI in Business (3rd Place)**
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
