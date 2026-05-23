@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FaceApiService {
-  static const String _endpoint = 'https://skinforreal-api.cognitiveservices.azure.com';
-  static const String _subscriptionKey = '2gIV6jTR3zD75b95zwCaWZWDiDbewiwLQRcWYaVZpgo2FFrQf0FlJQQJ99BDACYeBjFXJ3w3AAAKACOG73nB';
+  static const String _endpoint = 'https://skinforreal-face-api.cognitiveservices.azure.com';
+  static const String _subscriptionKey = '28KSrbOasu14DIsNO2oD6UpLeu2tZC79WB17K9WPbYwppTnjMA4RJQQJ99CEACYeBjFXJ3w3AAAKACOGZi8j';
+  static const String _groqKey = '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';
 
-  static Future<Map<String, dynamic>> analyzeFaceFromImage(File imageFile) async {
+  static Future<Map<String, dynamic>> analyzeFaceFromImage(XFile imageFile) async {
     final uri = Uri.parse('$_endpoint/face/v1.0/detect?returnFaceAttributes=blur,exposure,noise,occlusion,glasses,headPose');
     final bytes = await imageFile.readAsBytes();
 
@@ -52,117 +53,48 @@ class FaceApiService {
     return 'Combination/Normal';
   }
 
-  static String skincareTips(String type, String tone) {
-    final baseTips = {
-      'Acne-prone': '''
-🔍 Acne-Prone Skin Tips:
-- Use salicylic acid or benzoyl peroxide.
-- Avoid pore-clogging oils.
-- Stick to non-comedogenic products.
-🇺🇸 CeraVe Acne Foaming Cleanser, Paula’s Choice BHA
-🇪🇺 La Roche-Posay Effaclar Duo+
-🇰🇷 COSRX Acne Pimple Master Patches
-''',
-      'Oily': '''
-💧 Oily Skin Tips:
-- Use gel-based moisturizers.
-- Try niacinamide to reduce oil.
-- Don’t over-cleanse.
-🇺🇸 Neutrogena Hydro Boost Water Gel
-🇪🇺 Bioderma Sébium Mat
-🇰🇷 Beauty of Joseon Calming Serum
-''',
-      'Dry': '''
-🌿 Dry Skin Tips:
-- Use ceramides and hyaluronic acid.
-- Avoid harsh exfoliants.
-- Moisturize on damp skin.
-🇺🇸 CeraVe Moisturizing Cream
-🇪🇺 Eucerin Advanced Repair
-🇰🇷 Etude House SoonJung Barrier Cream
-''',
-      'Combination/Normal': '''
-🔄 Combination/Normal Skin Tips:
-- Balance hydration and oil control.
-- Use gentle cleanser and light moisturizer.
-🇺🇸 Vanicream Gentle Cleanser
-🇪🇺 Avene Cleanance Gel
-🇰🇷 Klairs Rich Moist Soothing Cream
-'''
-    };
+  static Future<String> getAIRecommendations(String skinType, String skinTone) async {
+    final uri = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
-    final toneExtras = {
-      'Light': '''
-☀️ Sunscreen: Use mineral SPF 30+ for sensitivity.
-✨ Retinoids: Start 2–3x/week.
-🧼 Avoid harsh scrubs.
-''',
-      'Medium': '''
-☀️ Use gel/hybrid SPF to avoid white cast.
-💧 Balance hydration and oil control.
-🧴 Try niacinamide or vitamin C.
-''',
-      'Tan/Olive': '''
-☀️ No-cast/tinted sunscreen formulas preferred.
-✨ Use alpha arbutin for pigmentation.
-🌿 Centella asiatica or green tea-based serums help soothe.
-''',
-      'Brown': '''
-☀️ SPF daily to prevent dark marks.
-🎯 Brighten with vitamin C or peptides.
-🧴 Rebuild barrier with ceramides.
-''',
-      'Deep/Dark': '''
-☀️ Broad-spectrum SPF: prevent post-acne marks.
-💊 Avoid scarring: be gentle.
-🧼 Clean towels daily. Avoid over-exfoliating.
-'''
-    };
+    final prompt = '''You are a professional dermatologist and skincare expert. A user has had their skin analyzed with the following results:
 
-    final treatment = '''
-⚙️ Advanced Routine:
-- OTC: Retinol (0.25–1.0%)
-- Rx: Adapalene, Tretinoin
-- Severe acne: Doxycycline or Minocycline
-⚠️ Accutane only under supervision
-☀️ SPF 30+ every morning
-🧴 Clean towels & patch test products
-''';
+Skin Type: $skinType
+Skin Tone: $skinTone
 
-    return '${baseTips[type] ?? ''}\n${toneExtras[tone] ?? ''}\n$treatment';
-  }
+Please provide:
+1. A brief explanation of what this skin type means
+2. A personalized AM and PM skincare routine with specific product recommendations (include US, European, and Korean options where relevant)
+3. Key ingredients to look for and avoid
+4. Any advanced treatments to consider (retinoids, acids, etc.)
+5. Lifestyle tips relevant to this skin type and tone
 
-  static String customizedRoutine(String type, String tone) {
-    final cleanser = {
-      'Dry': 'CeraVe Hydrating Cleanser',
-      'Oily': 'La Roche-Posay Effaclar Gel',
-      'Acne-prone': 'CeraVe Acne Foaming Cleanser',
-      'Combination/Normal': 'Vanicream Gentle Cleanser'
-    };
+Keep it practical, specific, and easy to follow. Use emojis to make it readable.''';
 
-    final moisturizer = {
-      'Dry': 'Eucerin Advanced Repair',
-      'Oily': 'Neutrogena Hydro Boost',
-      'Acne-prone': 'Differin Gel or CeraVe PM',
-      'Combination/Normal': 'Aveeno Calm + Restore'
-    };
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $_groqKey',
+      },
+      body: jsonEncode({
+        'model': 'llama-3.3-70b-versatile',
+        'messages': [
+          {
+            'role': 'user',
+            'content': prompt,
+          }
+        ],
+        'max_tokens': 1000,
+        'temperature': 0.7,
+      }),
+    );
 
-    final sunscreen = {
-      'Deep/Dark': 'Beauty of Joseon Relief Sun',
-      'Brown': 'Etude House Sunprise SPF 50+',
-      'Tan/Olive': 'Skin Aqua UV Super Moisture Gel',
-      'Medium': 'Round Lab Birch Juice SPF',
-      'Light': 'EltaMD UV Clear SPF 46'
-    };
-
-    return '''
-🧼 Personalized Routine:
-Cleanser: ${cleanser[type] ?? 'Gentle Cleanser'}
-Moisturizer: ${moisturizer[type] ?? 'Balanced Cream'}
-Sunscreen (K-Beauty): ${sunscreen[tone] ?? 'Any SPF 30+ non-irritating'}
-
-💡 Follow tips tailored to your skin type and tone above.
-''';
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['choices'][0]['message']['content'];
+    } else {
+      throw Exception('Groq error: ${response.body}');
+    }
   }
 
   static String suggestCulprit(String prev, String current) {
