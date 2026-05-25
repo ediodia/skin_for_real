@@ -18,13 +18,15 @@ class SkinChatbot extends StatefulWidget {
   State<SkinChatbot> createState() => _SkinChatbotState();
 }
 
-class _SkinChatbotState extends State<SkinChatbot> with SingleTickerProviderStateMixin {
+class _SkinChatbotState extends State<SkinChatbot>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
 
-  static const String _groqKey = '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';
+  static const String _groqKey =
+      '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';
 
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
@@ -32,14 +34,17 @@ class _SkinChatbotState extends State<SkinChatbot> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _animController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
     _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic));
+        .animate(CurvedAnimation(
+            parent: _animController, curve: Curves.easeOutCubic));
     _animController.forward();
 
     _messages.add({
       'role': 'assistant',
-      'content': 'Hey! I\'m your SkinForReal AI assistant. I can see your skin was analyzed as ${widget.skinType} with a ${widget.skinTone} tone. Ask me anything about your skin, routine, or products.',
+      'content':
+          'Hey! I\'m the SkinForReal AI assistant. I can see your skin was analyzed as ${widget.skinType} with a ${widget.skinTone} tone. I\'m here to help you understand your skin better, but I\'m not a licensed dermatologist — always check with a professional for medical concerns. Ask me anything about your routine or products!',
     });
   }
 
@@ -69,14 +74,15 @@ class _SkinChatbotState extends State<SkinChatbot> with SingleTickerProviderStat
     _scrollToBottom();
 
     try {
-      final systemPrompt = '''You are a professional dermatologist and skincare AI assistant built into SkinForReal. 
+      final systemPrompt =
+          '''You are SkinForReal AI, a skincare assistant built to help users understand their skin better. You are not a licensed dermatologist or medical professional. Your suggestions are educational and informational only and may not always be accurate. Always recommend consulting a licensed dermatologist for medical advice or concerns.
 
 The user's current skin analysis:
 - Skin Type: ${widget.skinType}
 - Skin Tone: ${widget.skinTone}
 - Current Recommendations: ${widget.currentRecommendations}
 
-Always give personalized advice based on their specific skin type and tone. Be friendly, concise, and practical. Keep responses under 150 words unless a detailed explanation is needed. Do not use markdown formatting or asterisks.''';
+Always give personalized advice based on their specific skin type and tone. Be friendly, concise, and practical. Keep responses under 150 words unless a detailed explanation is needed. Do not use markdown formatting or asterisks. Always remind users to consult a dermatologist for serious concerns.''';
 
       final messages = [
         {'role': 'system', 'content': systemPrompt},
@@ -107,13 +113,19 @@ Always give personalized advice based on their specific skin type and tone. Be f
         _scrollToBottom();
       } else {
         setState(() {
-          _messages.add({'role': 'assistant', 'content': 'Sorry, something went wrong. Try again.'});
+          _messages.add({
+            'role': 'assistant',
+            'content': 'Sorry, something went wrong. Try again.'
+          });
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _messages.add({'role': 'assistant', 'content': 'Connection error. Please try again.'});
+        _messages.add({
+          'role': 'assistant',
+          'content': 'Connection error. Please try again.'
+        });
         _isLoading = false;
       });
     }
@@ -147,7 +159,10 @@ Always give personalized advice based on their specific skin type and tone. Be f
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)
+            ],
           ),
           child: Column(
             children: [
@@ -170,20 +185,28 @@ Always give personalized advice based on their specific skin type and tone. Be f
                         color: Colors.deepPurple.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.auto_awesome_rounded, color: Colors.deepPurple, size: 18),
+                      child: const Icon(Icons.auto_awesome_rounded,
+                          color: Colors.deepPurple, size: 18),
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('SkinForReal AI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : Colors.black87)),
-                        Text('Personalized to your skin', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                        Text('SkinForReal AI',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark ? Colors.white : Colors.black87)),
+                        Text('Skincare assistant — not a dermatologist',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey.shade500)),
                       ],
                     ),
                     const Spacer(),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: Icon(Icons.close_rounded, color: Colors.grey.shade400),
+                      child: Icon(Icons.close_rounded,
+                          color: Colors.grey.shade400),
                     ),
                   ],
                 ),
@@ -192,7 +215,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   itemCount: _messages.length + (_isLoading ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == _messages.length && _isLoading) {
@@ -208,24 +232,32 @@ Always give personalized advice based on their specific skin type and tone. Be f
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
-                  border: Border(top: BorderSide(color: Colors.grey.withValues(alpha: 0.15))),
+                  border: Border(
+                      top: BorderSide(
+                          color: Colors.grey.withValues(alpha: 0.15))),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF2a2a3e) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF2a2a3e)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: TextField(
                           controller: _controller,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 14),
+                          style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 14),
                           decoration: InputDecoration(
                             hintText: 'Ask about your skin...',
-                            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                            hintStyle: TextStyle(
+                                color: Colors.grey.shade500, fontSize: 14),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                           ),
                           onSubmitted: _sendMessage,
                           textInputAction: TextInputAction.send,
@@ -241,7 +273,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
                           color: Colors.deepPurple,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                        child: const Icon(Icons.send_rounded,
+                            color: Colors.white, size: 18),
                       ),
                     ),
                   ],
@@ -258,7 +291,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
@@ -269,7 +303,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
                 color: Colors.deepPurple.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.deepPurple),
+              child: const Icon(Icons.auto_awesome_rounded,
+                  size: 14, color: Colors.deepPurple),
             ),
             const SizedBox(width: 8),
           ],
@@ -279,7 +314,9 @@ Always give personalized advice based on their specific skin type and tone. Be f
               decoration: BoxDecoration(
                 color: isUser
                     ? Colors.deepPurple
-                    : isDark ? const Color(0xFF2a2a3e) : const Color(0xFFF0EDFF),
+                    : isDark
+                        ? const Color(0xFF2a2a3e)
+                        : const Color(0xFFF0EDFF),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -292,7 +329,11 @@ Always give personalized advice based on their specific skin type and tone. Be f
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: isUser ? Colors.white : isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                  color: isUser
+                      ? Colors.white
+                      : isDark
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Colors.black87,
                 ),
               ),
             ),
@@ -315,7 +356,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
               color: Colors.deepPurple.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.deepPurple),
+            child: const Icon(Icons.auto_awesome_rounded,
+                size: 14, color: Colors.deepPurple),
           ),
           const SizedBox(width: 8),
           Container(

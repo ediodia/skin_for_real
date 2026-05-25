@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: const String.fromEnvironment('FIREBASE_KEY'),
+      apiKey: "AIzaSyBVklbTmc1l99JThg-GnMqOIgHd3ppyCpg",
       authDomain: "skinforreal-aa846.firebaseapp.com",
       projectId: "skinforreal-aa846",
       storageBucket: "skinforreal-aa846.firebasestorage.app",
@@ -41,10 +41,8 @@ class SkinForRealApp extends StatelessWidget {
       title: 'SkinForReal',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      theme:
-          ThemeData(brightness: Brightness.light, fontFamily: 'San Francisco'),
-      darkTheme:
-          ThemeData(brightness: Brightness.dark, fontFamily: 'San Francisco'),
+      theme: ThemeData(brightness: Brightness.light, fontFamily: 'San Francisco'),
+      darkTheme: ThemeData(brightness: Brightness.dark, fontFamily: 'San Francisco'),
       navigatorObservers: [
         FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
       ],
@@ -60,27 +58,20 @@ class _Ripple {
   final Animation<double> opacity;
   final Color color;
 
-  _Ripple(
-      {required this.position,
-      required this.controller,
-      required this.radius,
-      required this.opacity,
-      required this.color});
+  _Ripple({required this.position, required this.controller, required this.radius, required this.opacity, required this.color});
 }
 
 class HolographicBackground extends StatefulWidget {
   final bool isDark;
   final Widget child;
 
-  const HolographicBackground(
-      {super.key, required this.isDark, required this.child});
+  const HolographicBackground({super.key, required this.isDark, required this.child});
 
   @override
   State<HolographicBackground> createState() => _HolographicBackgroundState();
 }
 
-class _HolographicBackgroundState extends State<HolographicBackground>
-    with TickerProviderStateMixin {
+class _HolographicBackgroundState extends State<HolographicBackground> with TickerProviderStateMixin {
   late AnimationController _controller1;
   late AnimationController _controller2;
   late AnimationController _controller3;
@@ -92,17 +83,10 @@ class _HolographicBackgroundState extends State<HolographicBackground>
   @override
   void initState() {
     super.initState();
-    _controller1 =
-        AnimationController(vsync: this, duration: const Duration(seconds: 8))
-          ..repeat(reverse: true);
-    _controller2 =
-        AnimationController(vsync: this, duration: const Duration(seconds: 12))
-          ..repeat(reverse: true);
-    _controller3 =
-        AnimationController(vsync: this, duration: const Duration(seconds: 6))
-          ..repeat(reverse: true);
-    _swirlController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 50))
+    _controller1 = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat(reverse: true);
+    _controller2 = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat(reverse: true);
+    _controller3 = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat(reverse: true);
+    _swirlController = AnimationController(vsync: this, duration: const Duration(milliseconds: 50))
       ..addListener(() {
         setState(() {
           _mousePosition = Offset.lerp(_mousePosition, _targetPosition, 0.08)!;
@@ -124,18 +108,10 @@ class _HolographicBackgroundState extends State<HolographicBackground>
   void _addRipple(Offset position) {
     final hue = (position.dx + position.dy) % 360;
     final color = HSVColor.fromAHSV(1.0, hue, 0.7, 1.0).toColor();
-    final controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1400));
-    final radius = Tween<double>(begin: 0, end: 300)
-        .animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
-    final opacity = Tween<double>(begin: 0.5, end: 0.0)
-        .animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
-    final ripple = _Ripple(
-        position: position,
-        controller: controller,
-        radius: radius,
-        opacity: opacity,
-        color: color);
+    final controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+    final radius = Tween<double>(begin: 0, end: 300).animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
+    final opacity = Tween<double>(begin: 0.5, end: 0.0).animate(CurvedAnimation(parent: controller, curve: Curves.easeOut));
+    final ripple = _Ripple(position: position, controller: controller, radius: radius, opacity: opacity, color: color);
     setState(() => _ripples.add(ripple));
     controller.forward().then((_) {
       if (mounted) {
@@ -160,8 +136,7 @@ class _HolographicBackgroundState extends State<HolographicBackground>
         onTapDown: (d) => _addRipple(d.localPosition),
         onPanUpdate: (d) => setState(() => _targetPosition = d.localPosition),
         child: AnimatedBuilder(
-          animation:
-              Listenable.merge([_controller1, _controller2, _controller3]),
+          animation: Listenable.merge([_controller1, _controller2, _controller3]),
           builder: (context, child) {
             return Container(
               width: double.infinity,
@@ -178,24 +153,16 @@ class _HolographicBackgroundState extends State<HolographicBackground>
                   ),
                   colors: widget.isDark
                       ? [
-                          Color.lerp(const Color(0xFF1a0533),
-                              const Color(0xFF0a1628), t1 * 0.8 + nx * 0.2)!,
-                          Color.lerp(const Color(0xFF0d1f3c),
-                              const Color(0xFF1a0533), t2 * 0.8 + ny * 0.2)!,
-                          Color.lerp(const Color(0xFF0f2027),
-                              const Color(0xFF1a0533), t3 * 0.8 + nx * 0.2)!,
-                          Color.lerp(const Color(0xFF1a0533),
-                              const Color(0xFF0a1628), t1 * 0.8 + ny * 0.2)!,
+                          Color.lerp(const Color(0xFF1a0533), const Color(0xFF0a1628), t1 * 0.8 + nx * 0.2)!,
+                          Color.lerp(const Color(0xFF0d1f3c), const Color(0xFF1a0533), t2 * 0.8 + ny * 0.2)!,
+                          Color.lerp(const Color(0xFF0f2027), const Color(0xFF1a0533), t3 * 0.8 + nx * 0.2)!,
+                          Color.lerp(const Color(0xFF1a0533), const Color(0xFF0a1628), t1 * 0.8 + ny * 0.2)!,
                         ]
                       : [
-                          Color.lerp(const Color(0xFFFFE4F5),
-                              const Color(0xFFE8D5FF), t1 * 0.8 + nx * 0.2)!,
-                          Color.lerp(const Color(0xFFD5EEFF),
-                              const Color(0xFFFFE4F5), t2 * 0.8 + ny * 0.2)!,
-                          Color.lerp(const Color(0xFFE8FFE4),
-                              const Color(0xFFD5EEFF), t3 * 0.8 + nx * 0.2)!,
-                          Color.lerp(const Color(0xFFFFE4F5),
-                              const Color(0xFFFFD5F5), t1 * 0.8 + ny * 0.2)!,
+                          Color.lerp(const Color(0xFFFFE4F5), const Color(0xFFE8D5FF), t1 * 0.8 + nx * 0.2)!,
+                          Color.lerp(const Color(0xFFD5EEFF), const Color(0xFFFFE4F5), t2 * 0.8 + ny * 0.2)!,
+                          Color.lerp(const Color(0xFFE8FFE4), const Color(0xFFD5EEFF), t3 * 0.8 + nx * 0.2)!,
+                          Color.lerp(const Color(0xFFFFE4F5), const Color(0xFFFFD5F5), t1 * 0.8 + ny * 0.2)!,
                         ],
                 ),
               ),
@@ -211,16 +178,8 @@ class _HolographicBackgroundState extends State<HolographicBackground>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: widget.isDark
-                              ? [
-                                  const Color(0xFF2F7BBE)
-                                      .withValues(alpha: 0.3),
-                                  Colors.transparent
-                                ]
-                              : [
-                                  const Color(0xFF6EE4F5)
-                                      .withValues(alpha: 0.25),
-                                  Colors.transparent
-                                ],
+                              ? [const Color(0xFF2F7BBE).withValues(alpha: 0.3), Colors.transparent]
+                              : [const Color(0xFF6EE4F5).withValues(alpha: 0.25), Colors.transparent],
                         ),
                       ),
                     ),
@@ -235,16 +194,8 @@ class _HolographicBackgroundState extends State<HolographicBackground>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: widget.isDark
-                              ? [
-                                  const Color(0xFFBE2F7B)
-                                      .withValues(alpha: 0.25),
-                                  Colors.transparent
-                                ]
-                              : [
-                                  const Color(0xFFF56EB7)
-                                      .withValues(alpha: 0.25),
-                                  Colors.transparent
-                                ],
+                              ? [const Color(0xFFBE2F7B).withValues(alpha: 0.25), Colors.transparent]
+                              : [const Color(0xFFF56EB7).withValues(alpha: 0.25), Colors.transparent],
                         ),
                       ),
                     ),
@@ -259,16 +210,8 @@ class _HolographicBackgroundState extends State<HolographicBackground>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: widget.isDark
-                              ? [
-                                  const Color(0xFF7B2FBE)
-                                      .withValues(alpha: 0.2),
-                                  Colors.transparent
-                                ]
-                              : [
-                                  const Color(0xFFB76EF5)
-                                      .withValues(alpha: 0.2),
-                                  Colors.transparent
-                                ],
+                              ? [const Color(0xFF7B2FBE).withValues(alpha: 0.2), Colors.transparent]
+                              : [const Color(0xFFB76EF5).withValues(alpha: 0.2), Colors.transparent],
                         ),
                       ),
                     ),
@@ -286,8 +229,7 @@ class _HolographicBackgroundState extends State<HolographicBackground>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: ripple.color
-                                    .withValues(alpha: ripple.opacity.value),
+                                color: ripple.color.withValues(alpha: ripple.opacity.value),
                                 width: 1.5,
                               ),
                             ),
@@ -314,37 +256,21 @@ class _RecommendationSection {
   final IconData icon;
   final Color color;
 
-  const _RecommendationSection(
-      {required this.title,
-      required this.content,
-      required this.icon,
-      required this.color});
+  const _RecommendationSection({required this.title, required this.content, required this.icon, required this.color});
 }
 
 List<_RecommendationSection> _parseRecommendations(String raw) {
   final sections = <_RecommendationSection>[];
 
   final sectionDefs = [
-    (
-      'SKIN SUMMARY',
-      Icons.face_retouching_natural_rounded,
-      const Color(0xFF9B4DCA)
-    ),
+    ('SKIN SUMMARY', Icons.face_retouching_natural_rounded, const Color(0xFF9B4DCA)),
     ('MORNING ROUTINE', Icons.wb_sunny_rounded, const Color(0xFFFF9F43)),
     ('EVENING ROUTINE', Icons.nightlight_round, const Color(0xFF5C5FED)),
     ('RETINOID ROADMAP', Icons.rocket_launch_rounded, const Color(0xFFFF6B9D)),
     ('POWER INGREDIENTS', Icons.bolt_rounded, const Color(0xFF00D2FF)),
     ('INGREDIENTS TO AVOID', Icons.block_rounded, const Color(0xFFFF4757)),
-    (
-      'DERMATOLOGIST ALERT',
-      Icons.local_hospital_rounded,
-      const Color(0xFFFF6348)
-    ),
-    (
-      'LIFESTYLE UPGRADES',
-      Icons.self_improvement_rounded,
-      const Color(0xFF2ED573)
-    ),
+    ('DERMATOLOGIST ALERT', Icons.local_hospital_rounded, const Color(0xFFFF6348)),
+    ('LIFESTYLE UPGRADES', Icons.self_improvement_rounded, const Color(0xFF2ED573)),
   ];
 
   for (int i = 0; i < sectionDefs.length; i++) {
@@ -355,14 +281,11 @@ List<_RecommendationSection> _parseRecommendations(String raw) {
     if (startIdx == -1) continue;
 
     final contentStart = startIdx + title.length;
-    final endIdx =
-        nextTitle != null ? raw.indexOf(nextTitle, contentStart) : raw.length;
-    final content =
-        raw.substring(contentStart, endIdx == -1 ? raw.length : endIdx).trim();
+    final endIdx = nextTitle != null ? raw.indexOf(nextTitle, contentStart) : raw.length;
+    final content = raw.substring(contentStart, endIdx == -1 ? raw.length : endIdx).trim();
 
     if (content.isNotEmpty) {
-      sections.add(_RecommendationSection(
-          title: title, content: content, icon: icon, color: color));
+      sections.add(_RecommendationSection(title: title, content: content, icon: icon, color: color));
     }
   }
 
@@ -385,8 +308,7 @@ class SkinAnalyzer extends StatefulWidget {
   State<SkinAnalyzer> createState() => _SkinAnalyzerState();
 }
 
-class _SkinAnalyzerState extends State<SkinAnalyzer>
-    with TickerProviderStateMixin {
+class _SkinAnalyzerState extends State<SkinAnalyzer> with TickerProviderStateMixin {
   XFile? _imageFile;
   String _skinColor = '';
   String _skinType = '';
@@ -399,13 +321,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   double _debugExposure = 0.0;
 
   final ScrollController _scrollController = ScrollController();
-  final List<String> _skinToneOptions = [
-    'Light',
-    'Medium',
-    'Tan/Olive',
-    'Brown',
-    'Deep/Dark'
-  ];
+  final List<String> _skinToneOptions = ['Light', 'Medium', 'Tan/Olive', 'Brown', 'Deep/Dark'];
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -417,20 +333,14 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
-    _slideController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _pulseController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat(reverse: true);
-    _fadeIn =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart);
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _slideController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
+    _fadeIn = CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart);
     _slideIn = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
-        .animate(CurvedAnimation(
-            parent: _slideController, curve: Curves.easeOutQuart));
-    _pulse = Tween<double>(begin: 0.95, end: 1.05).animate(
-        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+        .animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutQuart));
+    _pulse = Tween<double>(begin: 0.95, end: 1.05)
+        .animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
   }
 
   Future<void> _saveTonePreference(String tone) async {
@@ -454,22 +364,17 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
             ? const Color(0xFF1e1e2e).withValues(alpha: 0.95)
             : Colors.white.withValues(alpha: 0.95),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text("Quick Note",
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-            "For best results, use natural lighting and face the camera directly. Flash may affect skin tone detection."),
+        title: const Text("Quick Note", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text("For best results, use natural lighting and face the camera directly. Flash may affect skin tone detection."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Got it!",
-                style: TextStyle(
-                    color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+            child: const Text("Got it!", style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
           )
         ],
       ),
     ).then((_) async {
-      final pickedFile =
-          await ImagePicker().pickImage(source: source, imageQuality: 90);
+      final pickedFile = await ImagePicker().pickImage(source: source, imageQuality: 90);
       if (pickedFile != null) {
         setState(() {
           _imageFile = pickedFile;
@@ -494,24 +399,20 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
       final exposure = (attributes['exposure']?['value'] ?? 0.0) as double;
       final tone = FaceApiService.estimateSkinColorLabel(attributes);
       final type = FaceApiService.detectSkinType(attributes);
-      final selectedTone =
-          _manualOverrideTone.isNotEmpty ? _manualOverrideTone : tone;
-      final tips =
-          await FaceApiService.getAIRecommendations(type, selectedTone);
+      final selectedTone = _manualOverrideTone.isNotEmpty ? _manualOverrideTone : tone;
+      final tips = await FaceApiService.getAIRecommendations(type, selectedTone);
 
       final prefs = await SharedPreferences.getInstance();
       final dateStr = DateTime.now().toIso8601String().split('T')[0];
       await prefs.setString('progress_$dateStr', type);
-      await prefs.setString('log_$dateStr',
-          jsonEncode({'type': type, 'color': selectedTone, 'tips': tips}));
+      await prefs.setString('log_$dateStr', jsonEncode({'type': type, 'color': selectedTone, 'tips': tips}));
 
       setState(() {
         _skinColor = tone;
         _skinType = type;
         _tips = _cleanText(tips);
         _debugExposure = exposure;
-        _culpritMessage =
-            '${FaceApiService.suggestCulprit(_lastSkinType, type)}  |  Exposure: ${exposure.toStringAsFixed(3)}';
+        _culpritMessage = '${FaceApiService.suggestCulprit(_lastSkinType, type)}  |  Exposure: ${exposure.toStringAsFixed(3)}';
         _lastSkinType = type;
         _loading = false;
       });
@@ -543,8 +444,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     _fadeController.forward(from: 0);
   }
 
-  Widget _buildSectionCard(
-      _RecommendationSection section, bool isDark, int index) {
+  Widget _buildSectionCard(_RecommendationSection section, bool isDark, int index) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: Duration(milliseconds: 400 + (index * 100)),
@@ -560,27 +460,15 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border:
-              Border.all(color: section.color.withValues(alpha: 0.3), width: 1),
+          border: Border.all(color: section.color.withValues(alpha: 0.3), width: 1),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [
-                    section.color.withValues(alpha: 0.08),
-                    const Color(0xFF1e1e2e).withValues(alpha: 0.95)
-                  ]
-                : [
-                    section.color.withValues(alpha: 0.05),
-                    Colors.white.withValues(alpha: 0.9)
-                  ],
+                ? [section.color.withValues(alpha: 0.08), const Color(0xFF1e1e2e).withValues(alpha: 0.95)]
+                : [section.color.withValues(alpha: 0.05), Colors.white.withValues(alpha: 0.9)],
           ),
-          boxShadow: [
-            BoxShadow(
-                color: section.color.withValues(alpha: 0.15),
-                blurRadius: 16,
-                offset: const Offset(0, 6))
-          ],
+          boxShadow: [BoxShadow(color: section.color.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6))],
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -600,23 +488,14 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                   const SizedBox(width: 10),
                   Text(
                     section.title,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: section.color,
-                        letterSpacing: 0.8),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: section.color, letterSpacing: 0.8),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               SelectableText(
                 section.content,
-                style: TextStyle(
-                    fontSize: 14,
-                    height: 1.75,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.88)
-                        : Colors.black87),
+                style: TextStyle(fontSize: 14, height: 1.75, color: isDark ? Colors.white.withValues(alpha: 0.88) : Colors.black87),
               ),
             ],
           ),
@@ -638,25 +517,17 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final sections = _tips.isNotEmpty
-        ? _parseRecommendations(_tips)
-        : <_RecommendationSection>[];
+    final sections = _tips.isNotEmpty ? _parseRecommendations(_tips) : <_RecommendationSection>[];
 
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0a0a1a) : const Color(0xFFF8F0FF),
+      backgroundColor: isDark ? const Color(0xFF0a0a1a) : const Color(0xFFF8F0FF),
       floatingActionButton: _skinColor.isNotEmpty && _skinColor != 'Error'
           ? ScaleTransition(
               scale: _pulse,
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.deepPurple.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                        spreadRadius: 2)
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.deepPurple.withValues(alpha: 0.5), blurRadius: 20, spreadRadius: 2)],
                 ),
                 child: FloatingActionButton(
                   onPressed: () {
@@ -666,17 +537,14 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                       backgroundColor: Colors.transparent,
                       builder: (_) => SkinChatbot(
                         skinType: _skinType,
-                        skinTone: _manualOverrideTone.isNotEmpty
-                            ? _manualOverrideTone
-                            : _skinColor,
+                        skinTone: _manualOverrideTone.isNotEmpty ? _manualOverrideTone : _skinColor,
                         currentRecommendations: _tips,
                       ),
                     );
                   },
                   backgroundColor: Colors.deepPurple,
                   elevation: 0,
-                  child: const Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white),
+                  child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
                 ),
               ),
             )
@@ -703,62 +571,40 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                           ShaderMask(
                             shaderCallback: (bounds) => LinearGradient(
                               colors: isDark
-                                  ? [
-                                      const Color(0xFFB76EF5),
-                                      const Color(0xFF6EE4F5),
-                                      const Color(0xFFF56EB7)
-                                    ]
-                                  : [
-                                      const Color(0xFF7B2FBE),
-                                      const Color(0xFF2F7BBE),
-                                      const Color(0xFFBE2F7B)
-                                    ],
+                                  ? [const Color(0xFFB76EF5), const Color(0xFF6EE4F5), const Color(0xFFF56EB7)]
+                                  : [const Color(0xFF7B2FBE), const Color(0xFF2F7BBE), const Color(0xFFBE2F7B)],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                             ).createShader(bounds),
                             child: const Text(
                               'SkinForReal',
-                              style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.5),
+                              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.5),
                             ),
                           ),
                           Text(
                             'Know your skin. For real.',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.white38 : Colors.black38,
-                                letterSpacing: 0.5),
+                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 0.5),
                           ),
                         ],
                       ),
-                      _ThemeToggle(
-                          isDark: isDark,
-                          onTap: () => themeProvider.toggleTheme()),
+                      _ThemeToggle(isDark: isDark, onTap: () => themeProvider.toggleTheme()),
                     ],
                   ),
+
                   const SizedBox(height: 32),
+
                   Row(
                     children: [
                       Expanded(
                         child: _GlowButton(
                           icon: Icons.upload_rounded,
                           label: 'Upload Photo',
-                          onTap: () =>
-                              _pickImageFromSource(ImageSource.gallery),
+                          onTap: () => _pickImageFromSource(ImageSource.gallery),
                           isDark: isDark,
                           glowColor: const Color(0xFF7B2FBE),
                           gradientColors: isDark
-                              ? [
-                                  const Color(0xFF2a1f3d),
-                                  const Color(0xFF1a1a2e)
-                                ]
-                              : [
-                                  Colors.white.withValues(alpha: 0.95),
-                                  Colors.white.withValues(alpha: 0.75)
-                                ],
+                              ? [const Color(0xFF2a1f3d), const Color(0xFF1a1a2e)]
+                              : [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.75)],
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -770,52 +616,40 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                           isDark: isDark,
                           glowColor: const Color(0xFF2F7BBE),
                           gradientColors: isDark
-                              ? [
-                                  const Color(0xFF1f2a3d),
-                                  const Color(0xFF1a1a2e)
-                                ]
-                              : [
-                                  Colors.white.withValues(alpha: 0.95),
-                                  Colors.white.withValues(alpha: 0.75)
-                                ],
+                              ? [const Color(0xFF1f2a3d), const Color(0xFF1a1a2e)]
+                              : [Colors.white.withValues(alpha: 0.95), Colors.white.withValues(alpha: 0.75)],
                         ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 12),
+
                   _GlowButton(
                     icon: Icons.calendar_month_rounded,
                     label: 'Track Skin Progress',
                     onTap: () {
-                      Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const SkinProgressCalendar(),
-                            transitionsBuilder: (_, animation, __, child) =>
-                                FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                        begin: const Offset(0, 0.05),
-                                        end: Offset.zero)
-                                    .animate(animation),
-                                child: child,
-                              ),
-                            ),
-                          ));
+                      Navigator.push(context, PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => const SkinProgressCalendar(),
+                        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(animation),
+                            child: child,
+                          ),
+                        ),
+                      ));
                     },
                     isDark: isDark,
                     fullWidth: true,
                     glowColor: const Color(0xFF7B2FBE),
-                    gradientColors: [
-                      const Color(0xFF7B2FBE),
-                      const Color(0xFF2F7BBE)
-                    ],
+                    gradientColors: [const Color(0xFF7B2FBE), const Color(0xFF2F7BBE)],
                     textColor: Colors.white,
                     iconColor: Colors.white,
                   ),
+
                   const SizedBox(height: 28),
+
                   if (_imageFile != null)
                     TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0.0, end: 1.0),
@@ -823,41 +657,26 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                       curve: Curves.easeOutBack,
                       builder: (context, value, child) => Transform.scale(
                         scale: value,
-                        child: Opacity(
-                            opacity: value.clamp(0.0, 1.0), child: child),
+                        child: Opacity(opacity: value.clamp(0.0, 1.0), child: child),
                       ),
                       child: FutureBuilder<dynamic>(
-                        future:
-                            _imageFile!.readAsBytes().then((bytes) => bytes),
+                        future: _imageFile!.readAsBytes().then((bytes) => bytes),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             return Center(
                               child: Container(
-                                constraints: const BoxConstraints(
-                                    maxHeight: 320, maxWidth: 420),
+                                constraints: const BoxConstraints(maxHeight: 320, maxWidth: 420),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(28),
                                   boxShadow: [
-                                    BoxShadow(
-                                        color: const Color(0xFF7B2FBE)
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 40,
-                                        offset: const Offset(0, 12)),
-                                    BoxShadow(
-                                        color: const Color(0xFF2F7BBE)
-                                            .withValues(alpha: 0.2),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 6)),
+                                    BoxShadow(color: const Color(0xFF7B2FBE).withValues(alpha: 0.4), blurRadius: 40, offset: const Offset(0, 12)),
+                                    BoxShadow(color: const Color(0xFF2F7BBE).withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 6)),
                                   ],
-                                  border: Border.all(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.3),
-                                      width: 1.5),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(28),
-                                  child: Image.memory(snapshot.data!,
-                                      fit: BoxFit.contain),
+                                  child: Image.memory(snapshot.data!, fit: BoxFit.contain),
                                 ),
                               ),
                             );
@@ -866,6 +685,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                         },
                       ),
                     ),
+
                   if (_debugError.isNotEmpty)
                     Container(
                       margin: const EdgeInsets.only(top: 12),
@@ -873,56 +693,35 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3)),
+                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                       ),
-                      child: Text('Error: $_debugError',
-                          style:
-                              const TextStyle(fontSize: 12, color: Colors.red)),
+                      child: Text('Error: $_debugError', style: const TextStyle(fontSize: 12, color: Colors.red)),
                     ),
+
                   if (_skinColor.isNotEmpty && _skinColor != 'Error')
                     Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: Colors.deepPurple.withValues(alpha: 0.25)),
+                          border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.25)),
                           gradient: LinearGradient(
                             colors: isDark
-                                ? [
-                                    const Color(0xFF2a2a3e)
-                                        .withValues(alpha: 0.9),
-                                    const Color(0xFF1e1e2e)
-                                        .withValues(alpha: 0.9)
-                                  ]
-                                : [
-                                    Colors.white.withValues(alpha: 0.9),
-                                    Colors.white.withValues(alpha: 0.7)
-                                  ],
+                                ? [const Color(0xFF2a2a3e).withValues(alpha: 0.9), const Color(0xFF1e1e2e).withValues(alpha: 0.9)]
+                                : [Colors.white.withValues(alpha: 0.9), Colors.white.withValues(alpha: 0.7)],
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _manualOverrideTone.isNotEmpty
-                                ? _manualOverrideTone
-                                : _skinColor,
+                            value: _manualOverrideTone.isNotEmpty ? _manualOverrideTone : _skinColor,
                             isExpanded: true,
-                            dropdownColor:
-                                isDark ? const Color(0xFF2a2a3e) : Colors.white,
-                            icon: const Icon(Icons.expand_more_rounded,
-                                color: Colors.deepPurple),
+                            dropdownColor: isDark ? const Color(0xFF2a2a3e) : Colors.white,
+                            icon: const Icon(Icons.expand_more_rounded, color: Colors.deepPurple),
                             items: _skinToneOptions.map((tone) {
                               return DropdownMenuItem<String>(
                                 value: tone,
-                                child: Text(tone,
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black87)),
+                                child: Text(tone, style: TextStyle(fontWeight: FontWeight.w500, color: isDark ? Colors.white : Colors.black87)),
                               );
                             }).toList(),
                             onChanged: _updateManualTone,
@@ -930,7 +729,9 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                         ),
                       ),
                     ),
+
                   const SizedBox(height: 20),
+
                   if (_loading)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 50),
@@ -943,49 +744,29 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                               height: 64,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                gradient: const LinearGradient(colors: [
-                                  Color(0xFF7B2FBE),
-                                  Color(0xFF2F7BBE)
-                                ]),
-                                boxShadow: [
-                                  BoxShadow(
-                                      color: const Color(0xFF7B2FBE)
-                                          .withValues(alpha: 0.5),
-                                      blurRadius: 24,
-                                      spreadRadius: 2)
-                                ],
+                                gradient: const LinearGradient(colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
+                                boxShadow: [BoxShadow(color: const Color(0xFF7B2FBE).withValues(alpha: 0.5), blurRadius: 24, spreadRadius: 2)],
                               ),
                               child: const Padding(
                                 padding: EdgeInsets.all(14),
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2.5),
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                               ),
                             ),
                           ),
                           const SizedBox(height: 20),
                           ShaderMask(
                             shaderCallback: (bounds) => const LinearGradient(
-                              colors: [
-                                Color(0xFF7B2FBE),
-                                Color(0xFF2F7BBE),
-                                Color(0xFFBE2F7B)
-                              ],
+                              colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE), Color(0xFFBE2F7B)],
                             ).createShader(bounds),
                             child: const Text(
                               'Analyzing your skin...',
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Building your personalized routine',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color:
-                                    isDark ? Colors.white38 : Colors.black38),
+                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
                           ),
                         ],
                       ),
@@ -1010,91 +791,65 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                           const SizedBox(width: 10),
                           Text(
                             'Your Skin Analysis',
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : Colors.black87),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87),
                           ),
                         ],
                       ),
                     ),
+
                     Row(
                       children: [
-                        _QuickStat(
-                            label: 'Skin Type',
-                            value: _skinType,
-                            color: const Color(0xFF4D7CCF),
-                            isDark: isDark),
+                        _QuickStat(label: 'Skin Type', value: _skinType, color: const Color(0xFF4D7CCF), isDark: isDark),
                         const SizedBox(width: 10),
-                        _QuickStat(
-                            label: 'Skin Tone',
-                            value: _manualOverrideTone.isNotEmpty
-                                ? _manualOverrideTone
-                                : _skinColor,
-                            color: const Color(0xFF9B4DCA),
-                            isDark: isDark),
+                        _QuickStat(label: 'Skin Tone', value: _manualOverrideTone.isNotEmpty ? _manualOverrideTone : _skinColor, color: const Color(0xFF9B4DCA), isDark: isDark),
                         const SizedBox(width: 10),
-                        _QuickStat(
-                            label: 'Exposure',
-                            value: _debugExposure.toStringAsFixed(2),
-                            color: const Color(0xFF2FBEBE),
-                            isDark: isDark),
+                        _QuickStat(label: 'Exposure', value: _debugExposure.toStringAsFixed(2), color: const Color(0xFF2FBEBE), isDark: isDark),
                       ],
                     ),
+
                     const SizedBox(height: 16),
+
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         color: const Color(0xFF2FBEBE).withValues(alpha: 0.1),
-                        border: Border.all(
-                            color:
-                                const Color(0xFF2FBEBE).withValues(alpha: 0.3)),
+                        border: Border.all(color: const Color(0xFF2FBEBE).withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.insights_rounded,
-                              size: 16, color: Color(0xFF2FBEBE)),
+                          const Icon(Icons.insights_rounded, size: 16, color: Color(0xFF2FBEBE)),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _culpritMessage,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color:
-                                      isDark ? Colors.white70 : Colors.black87),
+                              style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
                             ),
                           ),
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 20),
+
                     if (sections.isNotEmpty)
-                      ...sections.asMap().entries.map((entry) =>
-                          _buildSectionCard(entry.value, isDark, entry.key))
+                      ...sections.asMap().entries.map((entry) => _buildSectionCard(entry.value, isDark, entry.key))
                     else
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          color: isDark
-                              ? const Color(0xFF2a2a3e)
-                              : Colors.white.withValues(alpha: 0.9),
+                          color: isDark ? const Color(0xFF2a2a3e) : Colors.white.withValues(alpha: 0.9),
                         ),
                         child: SelectableText(
                           _tips,
-                          style: TextStyle(
-                              fontSize: 14,
-                              height: 1.7,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.88)
-                                  : Colors.black87),
+                          style: TextStyle(fontSize: 14, height: 1.7, color: isDark ? Colors.white.withValues(alpha: 0.88) : Colors.black87),
                         ),
                       ),
                   ],
+
                   const SizedBox(height: 80),
                 ],
               ),
@@ -1112,11 +867,7 @@ class _QuickStat extends StatelessWidget {
   final Color color;
   final bool isDark;
 
-  const _QuickStat(
-      {required this.label,
-      required this.value,
-      required this.color,
-      required this.isDark});
+  const _QuickStat({required this.label, required this.value, required this.color, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -1128,33 +879,16 @@ class _QuickStat extends StatelessWidget {
           border: Border.all(color: color.withValues(alpha: 0.3)),
           gradient: LinearGradient(
             colors: isDark
-                ? [
-                    color.withValues(alpha: 0.08),
-                    const Color(0xFF1e1e2e).withValues(alpha: 0.9)
-                  ]
-                : [
-                    color.withValues(alpha: 0.06),
-                    Colors.white.withValues(alpha: 0.9)
-                  ],
+                ? [color.withValues(alpha: 0.08), const Color(0xFF1e1e2e).withValues(alpha: 0.9)]
+                : [color.withValues(alpha: 0.06), Colors.white.withValues(alpha: 0.9)],
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5)),
+            Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
             const SizedBox(height: 4),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : Colors.black87),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
+            Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       ),
@@ -1177,14 +911,9 @@ class _ThemeToggle extends StatelessWidget {
         curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.black.withValues(alpha: 0.08)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1208,10 +937,7 @@ class _ThemeToggle extends StatelessWidget {
               child: Text(
                 isDark ? 'Dark' : 'Light',
                 key: ValueKey(isDark),
-                style: TextStyle(
-                    fontSize: 12,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                    fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black54, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -1248,8 +974,7 @@ class _GlowButton extends StatefulWidget {
   State<_GlowButton> createState() => _GlowButtonState();
 }
 
-class _GlowButtonState extends State<_GlowButton>
-    with SingleTickerProviderStateMixin {
+class _GlowButtonState extends State<_GlowButton> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scale;
   bool _pressed = false;
@@ -1257,10 +982,8 @@ class _GlowButtonState extends State<_GlowButton>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 150));
-    _scale = Tween<double>(begin: 1.0, end: 0.95)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 150));
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1271,10 +994,8 @@ class _GlowButtonState extends State<_GlowButton>
 
   @override
   Widget build(BuildContext context) {
-    final labelColor =
-        widget.textColor ?? (widget.isDark ? Colors.white : Colors.black87);
-    final iconColor = widget.iconColor ??
-        (widget.isDark ? Colors.white70 : Colors.deepPurple);
+    final labelColor = widget.textColor ?? (widget.isDark ? Colors.white : Colors.black87);
+    final iconColor = widget.iconColor ?? (widget.isDark ? Colors.white70 : Colors.deepPurple);
 
     return ScaleTransition(
       scale: _scale,
@@ -1307,8 +1028,7 @@ class _GlowButtonState extends State<_GlowButton>
               ),
               boxShadow: [
                 BoxShadow(
-                  color:
-                      widget.glowColor.withValues(alpha: _pressed ? 0.6 : 0.25),
+                  color: widget.glowColor.withValues(alpha: _pressed ? 0.6 : 0.25),
                   blurRadius: _pressed ? 28 : 15,
                   spreadRadius: _pressed ? 2 : 0,
                   offset: const Offset(0, 6),
@@ -1320,12 +1040,7 @@ class _GlowButtonState extends State<_GlowButton>
               children: [
                 Icon(widget.icon, size: 18, color: iconColor),
                 const SizedBox(width: 10),
-                Text(widget.label,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: labelColor,
-                        fontSize: 14,
-                        letterSpacing: 0.2)),
+                Text(widget.label, style: TextStyle(fontWeight: FontWeight.w600, color: labelColor, fontSize: 14, letterSpacing: 0.2)),
               ],
             ),
           ),

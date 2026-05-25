@@ -4,19 +4,24 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FaceApiService {
-  static const String _endpoint = 'https://skinforreal-face-api.cognitiveservices.azure.com';
-  static const String _subscriptionKey = const String.fromEnvironment('AZURE_KEY'),
-  static const String _groqKey = const String.fromEnvironment('GROQ_KEY');
+  static const String _endpoint =
+      'https://skinforreal-face-api.cognitiveservices.azure.com';
+  static const String _azureKey =
+      '28KSrbOasu14DIsNO2oD6UpLeu2tZC79WB17K9WPbYwppTnjMA4RJQQJ99CEACYeBjFXJ3w3AAAKACOGZi8j';
+  static const String _groqKey =
+      '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';
 
-  static Future<Map<String, dynamic>> analyzeFaceFromImage(XFile imageFile) async {
-    final uri = Uri.parse('$_endpoint/face/v1.0/detect?returnFaceAttributes=blur,exposure,noise,occlusion,glasses,headPose');
+  static Future<Map<String, dynamic>> analyzeFaceFromImage(
+      XFile imageFile) async {
+    final uri = Uri.parse(
+        '$_endpoint/face/v1.0/detect?returnFaceAttributes=blur,exposure,noise,occlusion,glasses,headPose');
     final bytes = await imageFile.readAsBytes();
 
     final response = await http.post(
       uri,
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Ocp-Apim-Subscription-Key': _subscriptionKey,
+        'Ocp-Apim-Subscription-Key': _azureKey,
       },
       body: bytes,
     );
@@ -53,10 +58,12 @@ class FaceApiService {
     return 'Combination/Normal';
   }
 
-  static Future<String> getAIRecommendations(String skinType, String skinTone) async {
+  static Future<String> getAIRecommendations(
+      String skinType, String skinTone) async {
     final uri = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
 
-    final prompt = '''You are a next-generation AI dermatologist built into SkinForReal, a skincare app for Gen Z. You speak like a knowledgeable best friend who happens to have a medical degree. You are direct, specific, and never give generic advice.
+    final prompt =
+        '''You are a next-generation AI dermatologist built into SkinForReal, a skincare app for Gen Z. You speak like a knowledgeable best friend who happens to have a medical degree. You are direct, specific, and never give generic advice.
 
 The user's skin has been analyzed:
 Skin Type: $skinType
@@ -130,7 +137,8 @@ Do not use any asterisks, hashtags, or markdown. Use plain text only. Be specifi
     final logs = <String>[];
 
     for (int i = 0; i <= 14; i++) {
-      final day = now.subtract(Duration(days: i)).toIso8601String().split('T').first;
+      final day =
+          now.subtract(Duration(days: i)).toIso8601String().split('T').first;
       final log = prefs.getString('progress_$day');
       if (log != null) logs.add(log);
     }
