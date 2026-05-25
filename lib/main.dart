@@ -14,7 +14,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: "AIzaSyBVklbTmc1l99JThg-GnMqOIgHd3ppyCpg",
+      apiKey: const String.fromEnvironment('FIREBASE_KEY'),
       authDomain: "skinforreal-aa846.firebaseapp.com",
       projectId: "skinforreal-aa846",
       storageBucket: "skinforreal-aa846.firebasestorage.app",

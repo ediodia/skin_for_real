@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FaceApiService {
   static const String _endpoint = 'https://skinforreal-face-api.cognitiveservices.azure.com';
-  static const String _subscriptionKey = '28KSrbOasu14DIsNO2oD6UpLeu2tZC79WB17K9WPbYwppTnjMA4RJQQJ99CEACYeBjFXJ3w3AAAKACOGZi8j';
-  static const String _groqKey = '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';
+  static const String _subscriptionKey = const String.fromEnvironment('AZURE_KEY'),
+  static const String _groqKey = const String.fromEnvironment('GROQ_KEY');
 
   static Future<Map<String, dynamic>> analyzeFaceFromImage(XFile imageFile) async {
     final uri = Uri.parse('$_endpoint/face/v1.0/detect?returnFaceAttributes=blur,exposure,noise,occlusion,glasses,headPose');
