@@ -13,7 +13,7 @@ It analyzes selfies to detect dryness, acne, irritation, and inflammation using 
 ## Built With
 - Flutter (UI)
 - Microsoft Azure Face API (Skin analysis)
-- TerpAI (AI Skincare Logs)
+- TerpAI (AI Skincare Advice/Logs)
 - Firebase (Data backend)
 - Dart, Figma, GitHub
 
