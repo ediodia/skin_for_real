@@ -82,6 +82,9 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
   String _cleanText(String text) {
     return text
         .replaceAll('**', '')
+        .replaceAll('###', '')
+        .replaceAll('##', '')
+        .replaceAll('#', '')
         .replaceAll(RegExp(r'[^\x00-\x7F\n\r\t ]'), '');
   }
 
@@ -121,8 +124,11 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
       backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.6,
-        maxChildSize: 0.9,
+        maxChildSize: 0.95,
         minChildSize: 0.3,
+        expand: false,
+        snap: true,
+        snapSizes: const [0.6, 0.95],
         builder: (_, scrollController) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           final type = entry?['type'] as String?;
