@@ -5,8 +5,18 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="SkinForReal - AI-powered skin analysis">
+
+  <!-- Open Graph / LinkedIn preview -->
+  <meta property="og:title" content="SkinForReal" />
+  <meta property="og:description" content="Know your skin. For real." />
+  <meta property="og:image" content="https://skinforreal-aa846.web.app/thumbnail.png" />
+  <meta property="og:url" content="https://skinforreal-aa846.web.app" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://skinforreal-aa846.web.app/thumbnail.png" />
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +30,273 @@
   <title>SkinForReal</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Google Analytics -->
+  <style>
+    * {
+      cursor: none !important;
+      scroll-behavior: smooth;
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+
+    ::selection { background: #a78bfa55; color: #f0abfc; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(#d946a8, #a78bfa, #67e8f9); border-radius: 4px; }
+
+    body { background: #0a0a1a; overflow: hidden; }
+
+    #sfr-loader {
+      position: fixed;
+      inset: 0;
+      background: #0a0a1a;
+      z-index: 9999990;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #sfr-loader.wipe-out { pointer-events: none; }
+
+    #loader-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #wipe-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9999995;
+      pointer-events: none;
+      display: none;
+    }
+
+    #loader-logo {
+      position: relative;
+      z-index: 2;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      font-size: clamp(36px, 7vw, 72px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #d946a8, #a78bfa, #67e8f9, #f0abfc);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 3s ease infinite;
+      margin-bottom: 8px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    #loader-logo.visible { opacity: 1; transform: translateY(0); }
+
+    #loader-sub {
+      position: relative;
+      z-index: 2;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 56px;
+      opacity: 0;
+      transition: opacity 0.8s ease 0.3s;
+    }
+
+    #loader-sub.visible { opacity: 1; }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #hint-container {
+      position: absolute;
+      bottom: 12%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 90%;
+      max-width: 380px;
+    }
+
+    .hint-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(167, 139, 250, 0.06);
+      border: 1px solid rgba(167, 139, 250, 0.18);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.65);
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.4s ease, background 0.4s ease, color 0.4s ease;
+      white-space: normal;
+      text-align: center;
+      width: 100%;
+    }
+
+    .hint-pill.visible { opacity: 1; transform: translateY(0); }
+
+    .hint-pill.done {
+      border-color: rgba(103, 232, 249, 0.35);
+      background: rgba(103, 232, 249, 0.06);
+      color: rgba(103, 232, 249, 0.85);
+    }
+
+    .hint-icon { font-size: 17px; flex-shrink: 0; }
+
+    @media (max-width: 420px) {
+      .hint-pill {
+        font-size: 12px;
+        padding: 9px 16px;
+        border-radius: 20px;
+      }
+      #hint-container {
+        width: 92%;
+        bottom: 14%;
+        gap: 8px;
+      }
+      #loader-sub {
+        font-size: 10px;
+        letter-spacing: 2px;
+        margin-bottom: 40px;
+      }
+    }
+
+    #progress-wrap {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    #progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #d946a8, #a78bfa, #67e8f9);
+      transition: width 0.4s ease;
+      width: 0%;
+      box-shadow: 0 0 8px #a78bfa;
+    }
+
+    #progress-label {
+      position: absolute;
+      bottom: 8px;
+      right: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 1px;
+      z-index: 4;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #progress-label.visible { opacity: 1; }
+
+    .cursor-dot {
+      position: fixed;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #a78bfa;
+      box-shadow: 0 0 10px #a78bfa, 0 0 20px #d946a8;
+      pointer-events: none;
+      z-index: 999999;
+      transform: translate(-50%, -50%);
+      transition: width 0.15s, height 0.15s, background 0.15s;
+    }
+
+    .cursor-dot.clicking {
+      width: 16px; height: 16px;
+      background: #67e8f9;
+      box-shadow: 0 0 16px #67e8f9, 0 0 32px #a78bfa;
+    }
+
+    .cursor-particle {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      animation: fadeOut 0.6s ease-out forwards;
+    }
+
+    @keyframes fadeOut {
+      0%   { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0); opacity: 0; }
+    }
+
+    .comet-particle {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+    }
+
+    #sfr-context-menu {
+      position: fixed;
+      background: rgba(15, 10, 26, 0.95);
+      border: 1px solid rgba(167, 139, 250, 0.25);
+      border-radius: 14px;
+      padding: 6px;
+      z-index: 9999998;
+      backdrop-filter: blur(20px);
+      min-width: 180px;
+      display: none;
+      animation: menuIn 0.15s ease;
+    }
+
+    @keyframes menuIn {
+      from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .ctx-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 9px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      color: rgba(255,255,255,0.75);
+      transition: background 0.15s;
+    }
+
+    .ctx-item:hover { background: rgba(167, 139, 250, 0.15); color: #f0abfc; }
+    .ctx-sep { height: 1px; background: rgba(167, 139, 250, 0.1); margin: 4px 6px; }
+
+    .click-burst {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99998;
+      border: 2px solid;
+      animation: burstOut 0.5s ease-out forwards;
+    }
+
+    @keyframes burstOut {
+      0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+      100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+    }
+  </style>
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MXG9G58NF"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -29,19 +305,41 @@
     gtag('config', 'G-0MXG9G58NF');
   </script>
 
-  <script>
-    const serviceWorkerVersion = null;
-  </script>
+  <script>const serviceWorkerVersion = null;</script>
   <script src="flutter.js" defer></script>
 </head>
 
 <body>
+
+  <div id="sfr-loader">
+    <canvas id="loader-canvas"></canvas>
+    <div id="loader-logo">SkinForReal</div>
+    <div id="loader-sub">Know your skin. For real.</div>
+    <div id="hint-container">
+      <div class="hint-pill" id="hint1"><span class="hint-icon">👆</span><span>tap anywhere to make shockwaves</span></div>
+      <div class="hint-pill" id="hint2"><span class="hint-icon">✨</span><span>drag to paint a comet trail</span></div>
+      <div class="hint-pill" id="hint3"><span class="hint-icon">🧬</span><span>AI-powered skin analysis for your exact face</span></div>
+      <div class="hint-pill" id="hint4"><span class="hint-icon">🎯</span><span>personalized routines, ingredients & derm alerts</span></div>
+      <div class="hint-pill" id="hint5"><span class="hint-icon">🚀</span><span>loading your experience...</span></div>
+    </div>
+    <div id="progress-label">0%</div>
+    <div id="progress-wrap"><div id="progress-bar"></div></div>
+  </div>
+
+  <canvas id="wipe-canvas"></canvas>
+
+  <div id="sfr-context-menu">
+    <div class="ctx-item" onclick="window.open('https://skinforreal-aa846.web.app')">🌐 Open app</div>
+    <div class="ctx-item" onclick="navigator.clipboard?.writeText(location.href)">🔗 Copy link</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="document.documentElement.requestFullscreen?.()">⛶ Fullscreen</div>
+    <div class="ctx-item" style="color:rgba(167,139,250,0.5);font-size:11px;padding:6px 14px;">SkinForReal ✦</div>
+  </div>
+
   <script>
     window.addEventListener('load', function (ev) {
       _flutter.loader.loadEntrypoint({
-        serviceWorker: {
-          serviceWorkerVersion: serviceWorkerVersion,
-        },
+        serviceWorker: { serviceWorkerVersion: serviceWorkerVersion },
         onEntrypointLoaded: function (engineInitializer) {
           engineInitializer.initializeEngine().then(function (appRunner) {
             appRunner.runApp();
@@ -49,6 +347,346 @@
         }
       });
     });
+  </script>
+
+  <script>
+    const colors = ['#d946a8', '#a78bfa', '#67e8f9', '#f0abfc', '#818cf8'];
+    const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+    const dot = document.createElement('div');
+    dot.classList.add('cursor-dot');
+    document.body.appendChild(dot);
+
+    let mouseX = 0, mouseY = 0, lastX = 0, lastY = 0, lastButtons = 0, rafPending = false;
+
+    document.addEventListener('visibilitychange', () => {
+      document.title = document.hidden ? 'come back 👀 | SkinForReal' : 'SkinForReal';
+    });
+
+    const ctxMenu = document.getElementById('sfr-context-menu');
+    document.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      ctxMenu.style.display = 'block';
+      ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+      ctxMenu.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+    });
+    document.addEventListener('click', () => ctxMenu.style.display = 'none');
+
+    function spawnClickBurst(x, y) {
+      const burst = document.createElement('div');
+      burst.classList.add('click-burst');
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      burst.style.cssText = `left:${x}px;top:${y}px;width:40px;height:40px;border-color:${color};box-shadow:0 0 8px ${color}`;
+      document.body.appendChild(burst);
+      setTimeout(() => burst.remove(), 500);
+      if (isMobile) navigator.vibrate?.(8);
+    }
+
+    document.addEventListener('pointerdown', e => {
+      if (e.button === 0) { dot.classList.add('clicking'); spawnClickBurst(e.clientX, e.clientY); }
+    }, true);
+    document.addEventListener('pointerup', () => dot.classList.remove('clicking'), true);
+
+    function spawnParticles() {
+      const dx = mouseX - lastX, dy = mouseY - lastY;
+      const speed = Math.sqrt(dx*dx + dy*dy);
+      const count = isMobile ? 2 : 4;
+
+      if (lastButtons === 1 && speed > 2) {
+        for (let i = 0; i < count; i++) {
+          const p = document.createElement('div');
+          p.classList.add('comet-particle');
+          const size = Math.random() * 10 + 3;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const lag = (i / count) * 0.5;
+          const sx = mouseX - dx * lag + (Math.random() - 0.5) * 4;
+          const sy = mouseY - dy * lag + (Math.random() - 0.5) * 4;
+          const vx = -dx * (0.2 + Math.random() * 0.3) + (Math.random() - 0.5) * 2;
+          const vy = -dy * (0.2 + Math.random() * 0.3) + (Math.random() - 0.5) * 2;
+          p.style.cssText = `width:${size}px;height:${size}px;left:${sx}px;top:${sy}px;background:${color};box-shadow:0 0 ${size*2}px ${color};opacity:1;position:fixed;border-radius:50%;pointer-events:none;z-index:99999`;
+          document.body.appendChild(p);
+          let x = sx, y = sy, op = 1, pvx = vx, pvy = vy, ps = size;
+          const anim = () => {
+            pvx *= 0.9; pvy *= 0.9; x += pvx; y += pvy;
+            op -= isMobile ? 0.06 : 0.04; ps *= 0.96;
+            p.style.left = x+'px'; p.style.top = y+'px';
+            p.style.opacity = op; p.style.width = ps+'px'; p.style.height = ps+'px';
+            if (op > 0) requestAnimationFrame(anim); else p.remove();
+          };
+          requestAnimationFrame(anim);
+        }
+      } else if (!isMobile && lastButtons === 0 && speed > 2) {
+        const p = document.createElement('div');
+        p.classList.add('cursor-particle');
+        const size = Math.random() * 7 + 3;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        p.style.cssText = `width:${size}px;height:${size}px;left:${mouseX-size/2}px;top:${mouseY-size/2}px;background:${color};box-shadow:0 0 ${size*2}px ${color}`;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+      }
+
+      lastX = mouseX; lastY = mouseY; rafPending = false;
+    }
+
+    document.addEventListener('pointerrawupdate', e => {
+      mouseX = e.clientX; mouseY = e.clientY; lastButtons = e.buttons;
+      dot.style.left = mouseX+'px'; dot.style.top = mouseY+'px';
+      if (!rafPending) { rafPending = true; requestAnimationFrame(spawnParticles); }
+    }, { capture: true, passive: true });
+
+    document.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      mouseX = t.clientX; mouseY = t.clientY; lastButtons = 1;
+      dot.style.left = mouseX+'px'; dot.style.top = mouseY+'px';
+      if (!rafPending) { rafPending = true; requestAnimationFrame(spawnParticles); }
+    }, { capture: true, passive: true });
+
+    document.addEventListener('touchend', () => lastButtons = 0, { capture: true, passive: true });
+
+    // ── LOADER ──
+    (function() {
+      const loader = document.getElementById('sfr-loader');
+      const canvas = document.getElementById('loader-canvas');
+      const wipeCanvas = document.getElementById('wipe-canvas');
+      const ctx = canvas.getContext('2d');
+      const wCtx = wipeCanvas.getContext('2d');
+      const progressBar = document.getElementById('progress-bar');
+      const progressLabel = document.getElementById('progress-label');
+      const logo = document.getElementById('loader-logo');
+      const sub = document.getElementById('loader-sub');
+      const hints = [1,2,3,4,5].map(i => document.getElementById('hint'+i));
+
+      let W, H;
+      const resize = () => {
+        W = canvas.width = wipeCanvas.width = window.innerWidth;
+        H = canvas.height = wipeCanvas.height = window.innerHeight;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      setTimeout(() => logo.classList.add('visible'), 300);
+      setTimeout(() => sub.classList.add('visible'), 600);
+      setTimeout(() => progressLabel.classList.add('visible'), 800);
+
+      const hintTimes = [1200, 2800, 4400, 6000, 7600];
+      hints.forEach((h, i) => setTimeout(() => h && h.classList.add('visible'), hintTimes[i]));
+
+      const loaderRipples = [];
+      const loaderComets = [];
+      let loaderDragging = false, loaderLastX = 0, loaderLastY = 0;
+
+      function addRipple(x, y) {
+        loaderRipples.push({ x, y, r: 0, alpha: 0.65, hue: (x + y) % 360 });
+        if (isMobile) navigator.vibrate?.(10);
+      }
+
+      canvas.addEventListener('pointerdown', e => {
+        addRipple(e.clientX, e.clientY);
+        loaderDragging = true; loaderLastX = e.clientX; loaderLastY = e.clientY;
+      });
+
+      loader.addEventListener('touchstart', e => {
+        e.stopPropagation();
+        const t = e.touches[0];
+        addRipple(t.clientX, t.clientY);
+        loaderDragging = true; loaderLastX = t.clientX; loaderLastY = t.clientY;
+      }, { passive: true });
+      canvas.addEventListener('pointerup', () => loaderDragging = false);
+      canvas.addEventListener('pointermove', e => {
+        if (!loaderDragging) return;
+        const dx = e.clientX - loaderLastX, dy = e.clientY - loaderLastY;
+        if (Math.sqrt(dx*dx+dy*dy) > 2) {
+          for (let i = 0; i < 6; i++) {
+            loaderComets.push({
+              x: e.clientX + (Math.random()-0.5)*10,
+              y: e.clientY + (Math.random()-0.5)*10,
+              vx: -dx*0.4*Math.random(), vy: -dy*0.4*Math.random(),
+              size: Math.random()*28+12, alpha: 1,
+              color: colors[Math.floor(Math.random()*colors.length)]
+            });
+          }
+        }
+        loaderLastX = e.clientX; loaderLastY = e.clientY;
+      });
+      canvas.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        addRipple(t.clientX, t.clientY);
+        loaderDragging = true; loaderLastX = t.clientX; loaderLastY = t.clientY;
+      }, { passive: true });
+      canvas.addEventListener('touchmove', e => {
+        const t = e.touches[0];
+        const x = t.clientX;
+        const y = t.clientY;
+        const dx = x - loaderLastX, dy = y - loaderLastY;
+        if (!loaderDragging) loaderDragging = true;
+        if (Math.sqrt(dx*dx+dy*dy) > 2) {
+          for (let i = 0; i < 4; i++) {
+            loaderComets.push({
+              x: x + (Math.random()-0.5)*10,
+              y: y + (Math.random()-0.5)*10,
+              vx: -dx*0.4*Math.random(), vy: -dy*0.4*Math.random(),
+              size: Math.random()*22+10, alpha: 1,
+              color: colors[Math.floor(Math.random()*colors.length)]
+            });
+          }
+        }
+        loaderLastX = x; loaderLastY = y;
+      }, { passive: true });
+      canvas.addEventListener('touchend', () => loaderDragging = false);
+
+      const floaters = Array.from({length: 35}, () => ({
+        x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight,
+        r: Math.random()*2+0.5,
+        vx: (Math.random()-0.5)*0.25, vy: (Math.random()-0.5)*0.25,
+        color: colors[Math.floor(Math.random()*colors.length)],
+        alpha: Math.random()*0.4+0.1
+      }));
+
+      function drawLoader() {
+        if (!loader.parentNode) return;
+        ctx.clearRect(0, 0, W, H);
+
+        floaters.forEach(f => {
+          f.x += f.vx; f.y += f.vy;
+          if (f.x < 0) f.x = W; if (f.x > W) f.x = 0;
+          if (f.y < 0) f.y = H; if (f.y > H) f.y = 0;
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+          ctx.fillStyle = f.color + Math.floor(f.alpha*255).toString(16).padStart(2,'0');
+          ctx.fill();
+        });
+
+        for (let i = loaderRipples.length-1; i >= 0; i--) {
+          const r = loaderRipples[i];
+          r.r += 3.5; r.alpha -= 0.01;
+          if (r.alpha <= 0) { loaderRipples.splice(i,1); continue; }
+          ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
+          ctx.strokeStyle = `hsla(${r.hue},80%,70%,${r.alpha})`;
+          ctx.lineWidth = 1.5; ctx.stroke();
+          if (r.r > 30) {
+            ctx.beginPath(); ctx.arc(r.x, r.y, r.r*0.55, 0, Math.PI*2);
+            ctx.strokeStyle = `hsla(${r.hue+40},80%,80%,${r.alpha*0.35})`;
+            ctx.lineWidth = 0.8; ctx.stroke();
+          }
+        }
+
+        for (let i = loaderComets.length-1; i >= 0; i--) {
+          const c = loaderComets[i];
+          c.x += c.vx; c.y += c.vy;
+          c.vx *= 0.9; c.vy *= 0.9;
+          c.alpha -= 0.03; c.size *= 0.97;
+          if (c.alpha <= 0) { loaderComets.splice(i,1); continue; }
+          ctx.beginPath(); ctx.arc(c.x, c.y, c.size/2, 0, Math.PI*2);
+          ctx.fillStyle = c.color + Math.floor(c.alpha*255).toString(16).padStart(2,'0');
+          ctx.shadowBlur = c.size*3; ctx.shadowColor = c.color;
+          ctx.fill(); ctx.shadowBlur = 0;
+        }
+
+        requestAnimationFrame(drawLoader);
+      }
+      drawLoader();
+
+      let prog = 0;
+      let flutterReady = false;
+      let wipeTriggered = false;
+
+      const progInterval = setInterval(() => {
+        if (wipeTriggered) return;
+        const target = flutterReady ? 100 : 88;
+        const step = flutterReady ? 3 : (Math.random() * 1.2 + 0.3);
+        prog = Math.min(prog + step, target);
+        progressBar.style.width = prog + '%';
+        progressLabel.textContent = Math.floor(prog) + '%';
+        if (prog >= 100 && !wipeTriggered) triggerWipe();
+      }, 180);
+
+      const observer = new MutationObserver(() => {
+        const fv = document.querySelector('flt-glass-pane, flutter-view, flt-scene');
+        if (fv) { observer.disconnect(); flutterReady = true; hints.forEach(h => h && h.classList.add('done')); }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      setTimeout(() => { flutterReady = true; }, 12000);
+
+      function triggerWipe() {
+        wipeTriggered = true;
+        clearInterval(progInterval);
+        loader.classList.add('wipe-out');
+        wipeCanvas.style.display = 'block';
+
+        const rows = 14;
+        const rowH = H / rows;
+        const duration = 1800;
+        const start = performance.now();
+
+        const rowData = Array.from({length: rows}, (_, i) => ({
+          delay: i * 60,
+          dir: i % 2 === 0 ? 1 : -1,
+          progress: 0
+        }));
+
+        const wipeParticles = [];
+
+        function animWipe(now) {
+          const elapsed = now - start;
+          wCtx.clearRect(0, 0, W, H);
+          wCtx.fillStyle = '#0a0a1a';
+
+          let allDone = true;
+          rowData.forEach((row, i) => {
+            const rowElapsed = elapsed - row.delay;
+            if (rowElapsed < 0) { allDone = false; return; }
+            row.progress = Math.min(rowElapsed / (duration * 0.6), 1);
+            if (row.progress < 1) allDone = false;
+
+            const y = i * rowH;
+            const fillW = row.progress * W;
+            const x = row.dir === 1 ? 0 : W - fillW;
+            wCtx.fillRect(x, y, fillW, rowH + 1);
+
+            if (row.progress < 1 && Math.random() < 0.5) {
+              const edgeX = row.dir === 1 ? fillW : W - fillW;
+              const edgeY = y + Math.random() * rowH;
+              wipeParticles.push({
+                x: edgeX, y: edgeY,
+                vx: row.dir * (Math.random() * 5 + 3),
+                vy: (Math.random() - 0.5) * 4,
+                size: Math.random() * 24 + 10,
+                alpha: 0.95,
+                color: colors[Math.floor(Math.random() * colors.length)]
+              });
+            }
+          });
+
+          wipeParticles.forEach(p => {
+            if (p.alpha <= 0) return;
+            p.x += p.vx; p.y += p.vy;
+            p.vx *= 0.88; p.vy *= 0.88;
+            p.alpha -= 0.022; p.size *= 0.97;
+            wCtx.beginPath();
+            wCtx.arc(p.x, p.y, p.size/2, 0, Math.PI*2);
+            wCtx.fillStyle = p.color + Math.floor(Math.max(0,p.alpha)*255).toString(16).padStart(2,'0');
+            wCtx.shadowBlur = p.size*3;
+            wCtx.shadowColor = p.color;
+            wCtx.fill();
+            wCtx.shadowBlur = 0;
+          });
+
+          if (!allDone || wipeParticles.some(p => p.alpha > 0)) {
+            requestAnimationFrame(animWipe);
+          } else {
+            setTimeout(() => {
+              loader.remove();
+              wipeCanvas.style.opacity = '0';
+              wipeCanvas.style.transition = 'opacity 0.3s ease';
+              setTimeout(() => { if (wipeCanvas.parentNode) wipeCanvas.remove(); document.body.style.overflow = ''; }, 300);
+            }, 100);
+          }
+        }
+
+        requestAnimationFrame(animWipe);
+      }
+    })();
   </script>
 </body>
 

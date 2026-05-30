@@ -25,8 +25,7 @@ class _SkinChatbotState extends State<SkinChatbot>
   final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
 
-  static const String _groqKey =
-      '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';
+  static const String _groqProxy = 'https://groqchat-yp4lhrod3q-uc.a.run.app';
 
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
@@ -90,11 +89,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
       ];
 
       final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_groqKey',
-        },
+        Uri.parse(_groqProxy),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'model': 'llama-3.3-70b-versatile',
           'messages': messages,
@@ -146,144 +142,156 @@ Always give personalized advice based on their specific skin type and tone. Be f
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isDesktop = MediaQuery.of(context).size.width > 600;
 
-    return SlideTransition(
-      position: _slideAnimation,
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)
-            ],
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurple.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.auto_awesome_rounded,
-                          color: Colors.deepPurple, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('SkinForReal AI',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isDark ? Colors.white : Colors.black87)),
-                        Text('Skincare assistant — not a dermatologist',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.grey.shade500)),
-                      ],
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Icon(Icons.close_rounded,
-                          color: Colors.grey.shade400),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(color: Colors.grey.withValues(alpha: 0.15), height: 1),
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: _messages.length + (_isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _messages.length && _isLoading) {
-                      return _buildTypingIndicator(isDark);
-                    }
-                    final message = _messages[index];
-                    final isUser = message['role'] == 'user';
-                    return _buildMessage(message['content']!, isUser, isDark);
-                  },
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
-                  border: Border(
-                      top: BorderSide(
-                          color: Colors.grey.withValues(alpha: 0.15))),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF2a2a3e)
-                              : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: TextField(
-                          controller: _controller,
-                          style: TextStyle(
-                              color: isDark ? Colors.white : Colors.black87,
-                              fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Ask about your skin...',
-                            hintStyle: TextStyle(
-                                color: Colors.grey.shade500, fontSize: 14),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                          ),
-                          onSubmitted: _sendMessage,
-                          textInputAction: TextInputAction.send,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _sendMessage(_controller.text),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          color: Colors.deepPurple,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.send_rounded,
-                            color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    final inner = Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20)
+        ],
       ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: Colors.deepPurple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.auto_awesome_rounded,
+                      color: Colors.deepPurple, size: 18),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('SkinForReal AI',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: isDark ? Colors.white : Colors.black87)),
+                    Text('Skincare assistant — not a dermatologist',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade500)),
+                  ],
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Icon(Icons.close_rounded, color: Colors.grey.shade400),
+                ),
+              ],
+            ),
+          ),
+          Divider(color: Colors.grey.withValues(alpha: 0.15), height: 1),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: _messages.length + (_isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _messages.length && _isLoading)
+                  return _buildTypingIndicator(isDark);
+                final message = _messages[index];
+                final isUser = message['role'] == 'user';
+                return _buildMessage(message['content']!, isUser, isDark);
+              },
+            ),
+          ),
+          AnimatedPadding(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+                border: Border(
+                    top:
+                        BorderSide(color: Colors.grey.withValues(alpha: 0.15))),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF2a2a3e)
+                            : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: _controller,
+                        style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: 'Ask about your skin...',
+                          hintStyle: TextStyle(
+                              color: Colors.grey.shade500, fontSize: 14),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                        ),
+                        onSubmitted: _sendMessage,
+                        textInputAction: TextInputAction.send,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _sendMessage(_controller.text),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                          color: Colors.deepPurple, shape: BoxShape.circle),
+                      child: const Icon(Icons.send_rounded,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (isDesktop) {
+      return SlideTransition(
+        position: _slideAnimation,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          child: inner,
+        ),
+      );
+    }
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, sheetScrollController) {
+        return SlideTransition(
+          position: _slideAnimation,
+          child: inner,
+        );
+      },
     );
   }
 
@@ -300,9 +308,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: Colors.deepPurple.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
+                  color: Colors.deepPurple.withValues(alpha: 0.1),
+                  shape: BoxShape.circle),
               child: const Icon(Icons.auto_awesome_rounded,
                   size: 14, color: Colors.deepPurple),
             ),
@@ -353,9 +360,8 @@ Always give personalized advice based on their specific skin type and tone. Be f
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
+                color: Colors.deepPurple.withValues(alpha: 0.1),
+                shape: BoxShape.circle),
             child: const Icon(Icons.auto_awesome_rounded,
                 size: 14, color: Colors.deepPurple),
           ),

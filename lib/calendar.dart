@@ -121,110 +121,116 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        maxChildSize: 0.95,
-        minChildSize: 0.3,
-        expand: false,
-        snap: true,
-        snapSizes: const [0.6, 0.95],
-        builder: (_, scrollController) {
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-          final type = entry?['type'] as String?;
-          final color = _getTypeColor(type);
+      builder: (_) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final type = entry?['type'] as String?;
+        final color = _getTypeColor(type);
+        final isDesktop = MediaQuery.of(context).size.width > 600;
 
-          return Container(
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      Row(
-                        children: [
-                          Text(date, style: TextStyle(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-                          const Spacer(),
-                          if (type != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(_getTypeIcon(type), size: 14, color: color),
-                                  const SizedBox(width: 6),
-                                  Text(type, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
-                                ],
-                              ),
+        final inner = Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1e1e2e) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    Row(
+                      children: [
+                        Text(date, style: TextStyle(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                        const Spacer(),
+                        if (type != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      if (entry == null)
-                        Center(
-                          child: Column(
-                            children: [
-                              const SizedBox(height: 20),
-                              Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
-                              const SizedBox(height: 12),
-                              Text('No log for this day', style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
-                            ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_getTypeIcon(type), size: 14, color: color),
+                                const SizedBox(width: 6),
+                                Text(type, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
                           ),
-                        )
-                      else ...[
-                        if (entry['color'] != null)
-                          _PopupCard(
-                            title: 'Skin Tone',
-                            content: entry['color'].toString(),
-                            icon: Icons.palette_rounded,
-                            color: Colors.purple,
-                            isDark: isDark,
-                          ),
-                        const SizedBox(height: 12),
-                        if (entry['tips'] != null)
-                          _PopupCard(
-                            title: 'Recommendations',
-                            content: _cleanText(entry['tips'].toString()),
-                            icon: Icons.auto_awesome_rounded,
-                            color: Colors.deepPurple,
-                            isDark: isDark,
-                          ),
-                        const SizedBox(height: 12),
-                        if (comparison != null)
-                          _PopupCard(
-                            title: 'Comparison',
-                            content: comparison,
-                            icon: Icons.trending_up_rounded,
-                            color: Colors.teal,
-                            isDark: isDark,
-                          ),
-                      ]
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    if (entry == null)
+                      Center(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 20),
+                            Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade300),
+                            const SizedBox(height: 12),
+                            Text('No log for this day', style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+                          ],
+                        ),
+                      )
+                    else ...[
+                      if (entry['color'] != null)
+                        _PopupCard(
+                          title: 'Skin Tone',
+                          content: entry['color'].toString(),
+                          icon: Icons.palette_rounded,
+                          color: Colors.purple,
+                          isDark: isDark,
+                        ),
+                      const SizedBox(height: 12),
+                      if (entry['tips'] != null)
+                        _PopupCard(
+                          title: 'Recommendations',
+                          content: _cleanText(entry['tips'].toString()),
+                          icon: Icons.auto_awesome_rounded,
+                          color: Colors.deepPurple,
+                          isDark: isDark,
+                        ),
+                      const SizedBox(height: 12),
+                      if (comparison != null)
+                        _PopupCard(
+                          title: 'Comparison',
+                          content: comparison,
+                          icon: Icons.trending_up_rounded,
+                          color: Colors.teal,
+                          isDark: isDark,
+                        ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+        );
+
+        if (isDesktop) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            child: inner,
           );
-        },
-      ),
+        }
+
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.95,
+          minChildSize: 0.3,
+          expand: false,
+          snap: true,
+          snapSizes: const [0.6, 0.95],
+          builder: (_, __) => inner,
+        );
+      },
     );
   }
 
