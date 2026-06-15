@@ -295,6 +295,50 @@
       0%   { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
       100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
     }
+
+    #sfr-settings-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: none !important;
+      backdrop-filter: blur(8px); opacity: 0;
+      transition: opacity 0.5s ease, background 0.2s;
+    }
+    #sfr-settings-btn.visible { opacity: 1; }
+    #sfr-settings-btn:hover { background: rgba(167,139,250,0.25); }
+
+    #sfr-settings-panel {
+      position: fixed; bottom: 72px; right: 24px; z-index: 9999;
+      background: rgba(15,10,26,0.92); border: 1px solid rgba(167,139,250,0.2);
+      border-radius: 16px; padding: 16px; min-width: 220px;
+      backdrop-filter: blur(20px); display: none;
+      animation: menuIn 0.15s ease;
+    }
+    #sfr-settings-panel.open { display: block; }
+    #sfr-settings-header {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 12px; font-weight: 700; color: rgba(167,139,250,0.8);
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .sfr-setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px; color: rgba(255,255,255,0.7);
+    }
+    .sfr-toggle {
+      width: 36px; height: 20px; border-radius: 10px;
+      background: rgba(255,255,255,0.15); position: relative;
+      cursor: none !important; transition: background 0.2s;
+    }
+    .sfr-toggle.active { background: #7B2FBE; }
+    .sfr-toggle-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: white; transition: transform 0.2s;
+    }
+    .sfr-toggle.active .sfr-toggle-knob { transform: translateX(16px); }
+    #sfr-ambient-vol, #sfr-sfx-vol { width: 100px; accent-color: #7B2FBE; }
   </style>
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MXG9G58NF"></script>
@@ -328,6 +372,26 @@
 
   <canvas id="wipe-canvas"></canvas>
 
+  <!-- Settings button -->
+  <div id="sfr-settings-btn" title="Settings">⚙️</div>
+  <div id="sfr-settings-panel">
+    <div id="sfr-settings-header">Settings</div>
+    <div class="sfr-setting-row">
+      <span>Sound</span>
+      <div id="sfr-mute-toggle" class="sfr-toggle active" onclick="toggleSfrMute()">
+        <div class="sfr-toggle-knob"></div>
+      </div>
+    </div>
+    <div class="sfr-setting-row">
+      <span>Ambient Volume</span>
+      <input type="range" id="sfr-ambient-vol" min="0" max="100" value="40" oninput="setSfrAmbientVol(this.value)">
+    </div>
+    <div class="sfr-setting-row">
+      <span>SFX Volume</span>
+      <input type="range" id="sfr-sfx-vol" min="0" max="100" value="70" oninput="setSfrSfxVol(this.value)">
+    </div>
+  </div>
+
   <div id="sfr-context-menu">
     <div class="ctx-item" onclick="window.open('https://skinforreal-aa846.web.app')">🌐 Open app</div>
     <div class="ctx-item" onclick="navigator.clipboard?.writeText(location.href)">🔗 Copy link</div>
@@ -337,13 +401,11 @@
   </div>
 
   <script>
-    window.addEventListener('load', function (ev) {
+    window.addEventListener('load', function () {
       _flutter.loader.loadEntrypoint({
-        serviceWorker: { serviceWorkerVersion: serviceWorkerVersion },
-        onEntrypointLoaded: function (engineInitializer) {
-          engineInitializer.initializeEngine().then(function (appRunner) {
-            appRunner.runApp();
-          });
+        onEntrypointLoaded: async function (engineInitializer) {
+          const appRunner = await engineInitializer.initializeEngine();
+          await appRunner.runApp();
         }
       });
     });
@@ -382,10 +444,36 @@
       if (isMobile) navigator.vibrate?.(8);
     }
 
+    let _holdTimer = null;
+    let _isHolding = false;
+
     document.addEventListener('pointerdown', e => {
-      if (e.button === 0) { dot.classList.add('clicking'); spawnClickBurst(e.clientX, e.clientY); }
+      if (e.button === 0) {
+        dot.classList.add('clicking');
+        spawnClickBurst(e.clientX, e.clientY);
+        _isHolding = false;
+        _holdTimer = setTimeout(() => {
+          _isHolding = true;
+          try { window.sfr_startFlow(); } catch(_) {}
+        }, 120);
+        try { window.sfr_soundTap(); } catch(_) {}
+      }
     }, true);
-    document.addEventListener('pointerup', () => dot.classList.remove('clicking'), true);
+
+    function stopFlow() {
+      clearTimeout(_holdTimer);
+      if (_isHolding) {
+        try { window.sfr_stopFlow(); } catch(_) {}
+        _isHolding = false;
+      }
+      dot.classList.remove('clicking');
+    }
+
+    document.addEventListener('pointerup', stopFlow, true);
+    document.addEventListener('pointercancel', stopFlow, true);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopFlow();
+    });
 
     function spawnParticles() {
       const dx = mouseX - lastX, dy = mouseY - lastY;
@@ -441,7 +529,8 @@
       if (!rafPending) { rafPending = true; requestAnimationFrame(spawnParticles); }
     }, { capture: true, passive: true });
 
-    document.addEventListener('touchend', () => lastButtons = 0, { capture: true, passive: true });
+    document.addEventListener('touchend', stopFlow, { capture: true, passive: true });
+    document.addEventListener('touchcancel', stopFlow, { capture: true, passive: true });
 
     // ── LOADER ──
     (function() {
@@ -478,6 +567,7 @@
       function addRipple(x, y) {
         loaderRipples.push({ x, y, r: 0, alpha: 0.65, hue: (x + y) % 360 });
         if (isMobile) navigator.vibrate?.(10);
+        if (window.sfr_soundRipple) sfr_soundRipple();
       }
 
       canvas.addEventListener('pointerdown', e => {
@@ -491,7 +581,11 @@
         addRipple(t.clientX, t.clientY);
         loaderDragging = true; loaderLastX = t.clientX; loaderLastY = t.clientY;
       }, { passive: true });
-      canvas.addEventListener('pointerup', () => loaderDragging = false);
+      canvas.addEventListener('pointerup', () => {
+        loaderDragging = false;
+        try { window.sfr_stopFlow(); } catch(_) {}
+        _isHolding = false;
+      });
       canvas.addEventListener('pointermove', e => {
         if (!loaderDragging) return;
         const dx = e.clientX - loaderLastX, dy = e.clientY - loaderLastY;
@@ -601,18 +695,23 @@
       }, 180);
 
       const observer = new MutationObserver(() => {
-        const fv = document.querySelector('flt-glass-pane, flutter-view, flt-scene');
-        if (fv) { observer.disconnect(); flutterReady = true; hints.forEach(h => h && h.classList.add('done')); }
+        const fv = document.querySelector('flt-glass-pane, flutter-view, flt-scene, flt-renderer-canvas');
+        if (fv) {
+          observer.disconnect();
+          flutterReady = true;
+          hints.forEach(h => h && h.classList.add('done'));
+        }
       });
       observer.observe(document.body, { childList: true, subtree: true });
 
-      setTimeout(() => { flutterReady = true; }, 12000);
+      setTimeout(() => { flutterReady = true; }, 4000);
 
       function triggerWipe() {
         wipeTriggered = true;
         clearInterval(progInterval);
         loader.classList.add('wipe-out');
         wipeCanvas.style.display = 'block';
+        if (window.sfr_soundLoaderDone) sfr_soundLoaderDone();
 
         const rows = 14;
         const rowH = H / rows;
@@ -686,6 +785,490 @@
 
         requestAnimationFrame(animWipe);
       }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      let _audioCtx = null;
+      let _muted = false;
+      let _masterGain = null;
+      let _ambientGain = null;
+      let _sfxGain = null;
+      let _ambientStarted = false;
+      let _flowNodes = null;
+      let _isFlowing = false;
+
+      function getCtx() {
+        if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (_audioCtx.state === 'suspended') _audioCtx.resume();
+        return _audioCtx;
+      }
+
+      function getMaster() {
+        const ctx = getCtx();
+        if (!_masterGain) {
+          _masterGain = ctx.createGain();
+          _masterGain.gain.value = _muted ? 0 : 1;
+          _masterGain.connect(ctx.destination);
+        }
+        return _masterGain;
+      }
+
+      function getAmbientGain() {
+        const ctx = getCtx();
+        if (!_ambientGain) {
+          _ambientGain = ctx.createGain();
+          _ambientGain.gain.value = 0.4;
+          _ambientGain.connect(getMaster());
+        }
+        return _ambientGain;
+      }
+
+      function getSfxGain() {
+        const ctx = getCtx();
+        if (!_sfxGain) {
+          _sfxGain = ctx.createGain();
+          _sfxGain.gain.value = 0.7;
+          _sfxGain.connect(getMaster());
+        }
+        return _sfxGain;
+      }
+
+      window.sfr_setMuted = function (val) {
+        _muted = val;
+        if (_masterGain) _masterGain.gain.value = val ? 0 : 1;
+        if (window._ambientAudio) {
+          if (val) {
+            window._ambientAudio.pause();
+          } else {
+            window._ambientAudio.play().catch(() => {});
+          }
+        }
+        const toggle = document.getElementById('sfr-mute-toggle');
+        if (toggle) toggle.classList.toggle('active', !val);
+      };
+      window.setSfrAmbientVol = function (val) {
+        if (_ambientGain) _ambientGain.gain.value = val / 100 * 0.6;
+      };
+      window.setSfrSfxVol = function (val) {
+        if (_sfxGain) _sfxGain.gain.value = val / 100;
+      };
+      window.toggleSfrMute = function () {
+        _muted = !_muted;
+        if (_masterGain) _masterGain.gain.value = _muted ? 0 : 1;
+        if (window._ambientAudio) {
+          if (_muted) {
+            window._ambientAudio.pause();
+          } else {
+            window._ambientAudio.play().catch(() => {});
+          }
+        }
+        const toggle = document.getElementById('sfr-mute-toggle');
+        if (toggle) toggle.classList.toggle('active', !_muted);
+      };
+
+      setTimeout(() => {
+        const btn = document.getElementById('sfr-settings-btn');
+        const panel = document.getElementById('sfr-settings-panel');
+        if (btn) {
+          btn.classList.add('visible');
+          btn.addEventListener('click', () => panel.classList.toggle('open'));
+        }
+        document.addEventListener('click', (e) => {
+          if (panel && !panel.contains(e.target) && e.target !== btn)
+            panel.classList.remove('open');
+        });
+      }, 3000);
+
+      // ── Reverb helper ──────────────────────────────────────────────────────
+      function createReverb(ctx, seconds, decay) {
+        const convolver = ctx.createConvolver();
+        const length = ctx.sampleRate * seconds;
+        const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = impulse.getChannelData(ch);
+          for (let i = 0; i < length; i++)
+            d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+        convolver.buffer = impulse;
+        return convolver;
+      }
+
+      // ── Ambient — MP3 only ────────────────────────────────────────────────
+      function startAmbient() {
+        if (_ambientStarted) return;
+        _ambientStarted = true;
+
+        const AMBIENT_URL = 'https://firebasestorage.googleapis.com/v0/b/skinforreal-aa846.firebasestorage.app/o/ambient.mp3?alt=media&token=0e76427e-e2a2-4995-bcd4-7c1682dd98d2';
+
+        const audio = new Audio(AMBIENT_URL);
+        audio.loop = true;
+        audio.volume = 0;
+        window._ambientAudio = audio;
+
+        const tryPlay = () => {
+          audio.play().then(() => {
+            let vol = 0;
+            const fadeIn = setInterval(() => {
+              vol = Math.min(vol + 0.003, 0.45);
+              audio.volume = vol;
+              if (vol >= 0.45) clearInterval(fadeIn);
+            }, 100);
+          }).catch(err => {
+            console.log('Ambient play failed:', err);
+          });
+        };
+
+        tryPlay();
+
+        const retryOnInteraction = () => {
+          if (audio.paused) tryPlay();
+          document.removeEventListener('pointerdown', retryOnInteraction);
+          document.removeEventListener('keydown', retryOnInteraction);
+        };
+        document.addEventListener('pointerdown', retryOnInteraction, { passive: true });
+        document.addEventListener('keydown', retryOnInteraction, { passive: true });
+
+        window.setSfrAmbientVol = function(val) {
+          audio.volume = Math.min(val / 100 * 0.6, 1);
+        };
+      }
+
+      // ── 1. Cave water drop — tap ──────────────────────────────────────────
+      window.sfr_soundTap = function () {
+        if (_isFlowing) return;
+        const ctx = getCtx();
+        const reverb = createReverb(ctx, 3, 2.5);
+        const rv = ctx.createGain(); rv.gain.value = 0.6;
+        reverb.connect(rv); rv.connect(getSfxGain());
+
+        const drop = ctx.createOscillator(); const dg = ctx.createGain();
+        drop.type = 'sine';
+        drop.frequency.setValueAtTime(1400, ctx.currentTime);
+        drop.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.07);
+        dg.gain.setValueAtTime(0.001, ctx.currentTime); dg.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.004); dg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        drop.connect(dg); dg.connect(reverb); dg.connect(getSfxGain());
+        drop.start(ctx.currentTime); drop.stop(ctx.currentTime + 0.12);
+
+        [[0.28, 800, 120, 0.18], [0.65, 500, 90, 0.07]].forEach(([delay, f1, f2, gain]) => {
+          const e = ctx.createOscillator(); const eg = ctx.createGain();
+          e.type = 'sine';
+          e.frequency.setValueAtTime(f1, ctx.currentTime + delay);
+          e.frequency.exponentialRampToValueAtTime(f2, ctx.currentTime + delay + 0.08);
+          eg.gain.setValueAtTime(0.001, ctx.currentTime + delay); eg.gain.linearRampToValueAtTime(gain, ctx.currentTime + delay + 0.005); eg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+          e.connect(eg); eg.connect(reverb);
+          e.start(ctx.currentTime + delay); e.stop(ctx.currentTime + delay + 0.4);
+        });
+      };
+
+      // ── 2. Flowing water — hold ────────────────────────────────────────────
+      window.sfr_startFlow = function () {
+        if (_isFlowing) return;
+        _isFlowing = true;
+        const ctx = getCtx();
+        const masterFlow = ctx.createGain();
+        masterFlow.gain.setValueAtTime(0, ctx.currentTime);
+        masterFlow.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.15);
+        masterFlow.connect(getSfxGain());
+
+        const streams = [{freq:600,Q:1.2,gain:0.5},{freq:1200,Q:0.8,gain:0.3},{freq:300,Q:1.5,gain:0.4},{freq:2400,Q:0.6,gain:0.15}];
+        const sources = streams.map(({ freq, Q, gain }) => {
+          const bufSize = ctx.sampleRate * 3;
+          const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+          const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+          const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = Q;
+          const g = ctx.createGain(); g.gain.value = gain;
+          const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+          lfo.type = 'sine'; lfo.frequency.value = 0.3 + Math.random() * 0.4; lfoG.gain.value = freq * 0.08;
+          lfo.connect(lfoG); lfoG.connect(f.frequency);
+          src.connect(f); f.connect(g); g.connect(masterFlow);
+          lfo.start(); src.start();
+          return { src, lfo, masterFlow };
+        });
+
+        const reverb = createReverb(ctx, 1.5, 3);
+        const rv = ctx.createGain(); rv.gain.value = 0.3;
+        reverb.connect(rv); rv.connect(getSfxGain()); masterFlow.connect(reverb);
+        _flowNodes = { masterFlow, sources, ctx };
+      };
+
+      window.sfr_stopFlow = function () {
+        if (!_isFlowing || !_flowNodes) return;
+        _isFlowing = false;
+        const { masterFlow, sources, ctx } = _flowNodes;
+        masterFlow.gain.setValueAtTime(masterFlow.gain.value, ctx.currentTime);
+        masterFlow.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+        setTimeout(() => {
+          sources.forEach(({ src, lfo }) => { try { src.stop(); lfo.stop(); } catch (_) {} });
+          _flowNodes = null;
+        }, 250);
+      };
+
+      // ── 3. Ripple shockwave ────────────────────────────────────────────────
+      window.sfr_soundRipple = function () {
+        const ctx = getCtx();
+        const reverb = createReverb(ctx, 3, 2);
+        const rv = ctx.createGain(); rv.gain.value = 0.6;
+        reverb.connect(rv); rv.connect(getSfxGain());
+        const sub = ctx.createOscillator(); const sg = ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(90, ctx.currentTime); sub.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.45);
+        sg.gain.setValueAtTime(0.001, ctx.currentTime); sg.gain.linearRampToValueAtTime(0.45, ctx.currentTime + 0.01); sg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        sub.connect(sg); sg.connect(reverb); sg.connect(getSfxGain());
+        sub.start(ctx.currentTime); sub.stop(ctx.currentTime + 0.55);
+      };
+
+      // ── 4. Ascending sweep — onboarding ───────────────────────────────────
+      window.sfr_soundAdvance = function () {
+        const ctx = getCtx();
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          const t = ctx.currentTime + i * 0.08;
+          g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(0.15, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          o.connect(g); g.connect(getSfxGain()); o.start(t); o.stop(t + 0.32);
+        });
+      };
+
+      // ── 5. Warm bloom — sign-in success ──────────────────────────────────
+      window.sfr_soundSuccess = function () {
+        const ctx = getCtx();
+        const reverb = createReverb(ctx, 2, 4);
+        const rv = ctx.createGain(); rv.gain.value = 0.4;
+        reverb.connect(rv); rv.connect(getSfxGain());
+        [261.63, 329.63, 392.00, 493.88, 523.25].forEach((freq, i) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = i === 0 ? 'sine' : 'triangle'; o.frequency.value = freq;
+          const t = ctx.currentTime + i * 0.07;
+          g.gain.setValueAtTime(0.001, t); g.gain.linearRampToValueAtTime(0.15 - i * 0.015, t + 0.04); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+          o.connect(g); g.connect(reverb); g.connect(getSfxGain()); o.start(t); o.stop(t + 0.8);
+        });
+      };
+
+      // ── 6. Error ──────────────────────────────────────────────────────────
+      window.sfr_soundError = function () {
+        const ctx = getCtx();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(180, ctx.currentTime); o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+        g.gain.setValueAtTime(0.001, ctx.currentTime); g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        o.connect(g); g.connect(getSfxGain()); o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.35);
+      };
+
+      // ── 7. Bell chime — analysis complete ────────────────────────────────
+      window.sfr_soundChime = function () {
+        const ctx = getCtx();
+        const reverb = createReverb(ctx, 2, 5);
+        const rv = ctx.createGain(); rv.gain.value = 0.5;
+        reverb.connect(rv); rv.connect(getSfxGain());
+        [{ freq: 1318.5, t: 0 }, { freq: 1760, t: 0.12 }, { freq: 2093, t: 0.22 }].forEach(({ freq, t }) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          const at = ctx.currentTime + t;
+          g.gain.setValueAtTime(0.001, at); g.gain.linearRampToValueAtTime(0.2, at + 0.008); g.gain.exponentialRampToValueAtTime(0.001, at + 1.0);
+          o.connect(g); g.connect(reverb); g.connect(getSfxGain()); o.start(at); o.stop(at + 1.1);
+        });
+      };
+
+      // ── 8. Loader done ────────────────────────────────────────────────────
+      window.sfr_soundLoaderDone = function () {
+        const ctx = getCtx();
+        const bufSize = ctx.sampleRate * 0.4;
+        const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const f = ctx.createBiquadFilter(); f.type = 'highpass';
+        f.frequency.setValueAtTime(200, ctx.currentTime); f.frequency.exponentialRampToValueAtTime(8000, ctx.currentTime + 0.4);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        src.connect(f); f.connect(g); g.connect(getSfxGain());
+        src.start(ctx.currentTime); src.stop(ctx.currentTime + 0.45);
+        setTimeout(() => window.sfr_soundSuccess(), 350);
+      };
+
+      // ── 9. Glass shatter ─────────────────────────────────────────────────
+      window.sfr_soundGlassShatter = function() {
+        const ctx = getCtx();
+
+        if (window._ambientAudio && !window._ambientAudio.paused) {
+          const originalVol = window._ambientAudio.volume;
+          window._ambientAudio.volume = originalVol * 0.1;
+          setTimeout(() => {
+            if (window._ambientAudio) window._ambientAudio.volume = originalVol;
+          }, 2800);
+        }
+
+        // Rising tension whoosh before impact
+        const whoosh = ctx.createOscillator();
+        const whooshGain = ctx.createGain();
+        const whooshFilter = ctx.createBiquadFilter();
+        whoosh.type = 'sawtooth';
+        whoosh.frequency.setValueAtTime(80, ctx.currentTime);
+        whoosh.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.25);
+        whooshFilter.type = 'bandpass';
+        whooshFilter.frequency.value = 1200;
+        whooshFilter.Q.value = 2;
+        whooshGain.gain.setValueAtTime(0.001, ctx.currentTime);
+        whooshGain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.2);
+        whooshGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+        whoosh.connect(whooshFilter);
+        whooshFilter.connect(whooshGain);
+        whooshGain.connect(getMaster());
+        whoosh.start(ctx.currentTime);
+        whoosh.stop(ctx.currentTime + 0.3);
+
+        const impactTime = ctx.currentTime + 0.28;
+
+        // BIG impact crack — punchy transient
+        const impactBuf = ctx.sampleRate * 0.1;
+        const impactBuffer = ctx.createBuffer(1, impactBuf, ctx.sampleRate);
+        const impactData = impactBuffer.getChannelData(0);
+        for (let i = 0; i < impactBuf; i++) {
+          impactData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impactBuf, 0.2);
+        }
+        const impactSrc = ctx.createBufferSource();
+        impactSrc.buffer = impactBuffer;
+        const impactFilter = ctx.createBiquadFilter();
+        impactFilter.type = 'highpass';
+        impactFilter.frequency.value = 2000;
+        const impactGain = ctx.createGain();
+        impactGain.gain.setValueAtTime(5.0, impactTime);
+        impactGain.gain.exponentialRampToValueAtTime(0.001, impactTime + 0.1);
+        impactSrc.connect(impactFilter);
+        impactFilter.connect(impactGain);
+        impactGain.connect(getMaster());
+        impactSrc.start(impactTime);
+        impactSrc.stop(impactTime + 0.12);
+
+        // Massive shatter layers — wider frequency spread, louder
+        const shatterLayers = [
+          { freq: 9000, q: 0.4, gain: 3.0, delay: 0.0,  duration: 0.5 },
+          { freq: 6000, q: 0.6, gain: 2.8, delay: 0.01, duration: 0.7 },
+          { freq: 4000, q: 0.7, gain: 2.5, delay: 0.02, duration: 0.9 },
+          { freq: 2200, q: 0.9, gain: 2.2, delay: 0.03, duration: 1.1 },
+          { freq: 1100, q: 1.1, gain: 1.8, delay: 0.04, duration: 1.3 },
+          { freq: 500,  q: 1.3, gain: 1.4, delay: 0.05, duration: 1.5 },
+        ];
+
+        shatterLayers.forEach(({ freq, q, gain, delay, duration }) => {
+          const bufSize = ctx.sampleRate * duration;
+          const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 1.3);
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buffer;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = freq;
+          filter.Q.value = q;
+          const g = ctx.createGain();
+          const t = impactTime + delay;
+          g.gain.setValueAtTime(gain, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+          src.connect(filter);
+          filter.connect(g);
+          g.connect(getMaster());
+          src.start(t);
+          src.stop(t + duration + 0.1);
+        });
+
+        // More tinkling shards, wider spread, longer tail
+        for (let i = 0; i < 28; i++) {
+          const delay = 0.02 + Math.random() * 1.3;
+          const freq = 1800 + Math.random() * 7000;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = freq;
+          const t = impactTime + delay;
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.18 + Math.random() * 0.25, t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.1 + Math.random() * 0.2);
+          o.connect(g);
+          g.connect(getMaster());
+          o.start(t);
+          o.stop(t + 0.35);
+        }
+
+        // Deep sub thud — punchier, lower
+        const sub = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(150, impactTime);
+        sub.frequency.exponentialRampToValueAtTime(30, impactTime + 0.4);
+        subGain.gain.setValueAtTime(0.001, impactTime);
+        subGain.gain.linearRampToValueAtTime(1.0, impactTime + 0.02);
+        subGain.gain.exponentialRampToValueAtTime(0.001, impactTime + 0.45);
+        sub.connect(subGain);
+        subGain.connect(getMaster());
+        sub.start(impactTime);
+        sub.stop(impactTime + 0.5);
+
+        // Long reverb tail — cinematic glass resonance
+        const reverb = createReverb(ctx, 2.2, 5);
+        const reverbGain = ctx.createGain();
+        reverbGain.gain.value = 0.4;
+        reverb.connect(reverbGain);
+        reverbGain.connect(getMaster());
+
+        const tailBuf = ctx.sampleRate * 0.8;
+        const tailBuffer = ctx.createBuffer(1, tailBuf, ctx.sampleRate);
+        const tailData = tailBuffer.getChannelData(0);
+        for (let i = 0; i < tailBuf; i++) {
+          tailData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / tailBuf, 1.8);
+        }
+        const tailSrc = ctx.createBufferSource();
+        tailSrc.buffer = tailBuffer;
+        const tailFilter = ctx.createBiquadFilter();
+        tailFilter.type = 'highpass';
+        tailFilter.frequency.value = 3500;
+        const tailGain = ctx.createGain();
+        tailGain.gain.value = 0.8;
+        tailSrc.connect(tailFilter);
+        tailFilter.connect(tailGain);
+        tailGain.connect(reverb);
+        tailSrc.start(impactTime + 0.15);
+        tailSrc.stop(impactTime + 0.95);
+      };
+
+      // ── 10. Question selection click — crystalline tap ────────────────────
+      window.sfr_soundSelect = function() {
+        const ctx = getCtx();
+        const reverb = createReverb(ctx, 1.2, 4);
+        const rv = ctx.createGain(); rv.gain.value = 0.3;
+        reverb.connect(rv); rv.connect(getSfxGain());
+
+        [1, 2.4].forEach((partial, i) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = 1800 * partial;
+          const t = ctx.currentTime + i * 0.015;
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(0.2 - i * 0.08, t + 0.005);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          o.connect(g); g.connect(reverb); g.connect(getSfxGain());
+          o.start(t); o.stop(t + 0.3);
+        });
+      };
+
+      // ── Unlock on first gesture ───────────────────────────────────────────
+      let _unlocked = false;
+      function unlock() {
+        if (_unlocked) return;
+        _unlocked = true;
+        setTimeout(startAmbient, 300);
+      }
+      ['pointerdown', 'touchstart', 'keydown'].forEach(e =>
+        document.addEventListener(e, unlock, { once: true, passive: true })
+      );
+
     })();
   </script>
 </body>

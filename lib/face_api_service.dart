@@ -85,7 +85,7 @@ class FaceApiService {
   }
 
   static String estimateSkinColorLabel(Map<String, dynamic> attr) {
-    final exposure = attr['exposure']?['value'] ?? 0.0;
+    final exposure = (attr['exposure']?['value'] as num?)?.toDouble() ?? 0.0;
     if (exposure >= 0.65) return 'Light';
     if (exposure >= 0.50) return 'Medium';
     if (exposure >= 0.45) return 'Tan/Olive';
@@ -94,8 +94,8 @@ class FaceApiService {
   }
 
   static String detectSkinType(Map<String, dynamic> attr) {
-    final noise = attr['noise']?['value'] ?? 0.0;
-    final exposure = attr['exposure']?['value'] ?? 0.0;
+    final noise = (attr['noise']?['value'] as num?)?.toDouble() ?? 0.0;
+    final exposure = (attr['exposure']?['value'] as num?)?.toDouble() ?? 0.0;
 
     if (exposure > 0.6 && noise < 0.3) return 'Oily';
     if (exposure < 0.2 && noise < 0.2) return 'Dry';
@@ -149,7 +149,11 @@ Be honest and specific. If the image is unclear, say so in summary but still ret
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final content = data['choices'][0]['message']['content'] as String;
+      final choices = data['choices'];
+      if (choices == null || (choices as List).isEmpty) {
+        return {'severity': 'Unknown', 'summary': 'Vision analysis failed.'};
+      }
+      final content = choices[0]['message']['content'] as String;
       try {
         final cleaned =
             content.replaceAll('```json', '').replaceAll('```', '').trim();
@@ -277,9 +281,13 @@ CRITICAL RULES:
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final fullContent = data['choices'][0]['message']['content'] as String;
+      final choices = data['choices'];
+      if (choices == null || (choices as List).isEmpty) {
+        throw Exception('Groq returned empty response');
+      }
+      final fullContent = choices[0]['message']['content'] as String;
 
-      final delimiter = '---PRODUCTS_JSON---';
+      const delimiter = '---PRODUCTS_JSON---';
       final parts = fullContent.split(delimiter);
 
       final recommendations = parts[0].trim();
@@ -316,14 +324,18 @@ CRITICAL RULES:
   }
 
   static String suggestCulprit(String prev, String current) {
-    if (prev != 'Acne-prone' && current == 'Acne-prone')
+    if (prev != 'Acne-prone' && current == 'Acne-prone') {
       return 'Flare-up detected. Recheck new products or actives.';
-    if (prev == 'Dry' && current == 'Oily')
+    }
+    if (prev == 'Dry' && current == 'Oily') {
       return 'Rebound oil detected. Try a barrier-repair cream.';
-    if (prev == 'Acne-prone' && current != 'Acne-prone')
+    }
+    if (prev == 'Acne-prone' && current != 'Acne-prone') {
       return 'Skin clearing up. Keep your current routine going.';
-    if (prev == current && current == 'Acne-prone')
+    }
+    if (prev == current && current == 'Acne-prone') {
       return 'Persistent acne-prone skin. Consider seeing a derm.';
+    }
     return 'Skin looks stable. Keep up the routine.';
   }
 
@@ -344,10 +356,12 @@ CRITICAL RULES:
       counts[t] = (counts[t] ?? 0) + 1;
     }
 
-    if (logs.length >= 7 && counts.values.every((v) => v == 1))
+    if (logs.length >= 7 && counts.values.every((v) => v == 1)) {
       return 'No consistent pattern. Consider simplifying your routine.';
-    if ((counts['Acne-prone'] ?? 0) >= 5)
+    }
+    if ((counts['Acne-prone'] ?? 0) >= 5) {
       return 'Frequent acne detected. Check actives, SPF, or moisturizer.';
+    }
     return 'Skin looks stable over the past two weeks.';
   }
 }

@@ -10,24 +10,44 @@ dependencies:
   flutter:
     sdk: flutter
 
-  http: ^0.13.6
+  http: ^1.2.0
   image_picker: ^1.0.4
   provider: ^6.1.4
   shared_preferences: ^2.2.2
   path_provider: ^2.0.15
   firebase_core: ^3.0.0
   firebase_analytics: ^11.0.0
+  firebase_auth: ^5.0.0
+  cloud_firestore: ^5.0.0
+  google_sign_in: ^6.2.1
   url_launcher: ^6.2.5
   cached_network_image: ^3.3.1
 
   blur: ^3.0.0
   table_calendar: ^3.0.9
+  fl_chart: ^0.68.0
   cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/skinfr_logo.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/skinfr_logo.png"
+    background_color: "#0a0a1a"
+    theme_color: "#7B2FBE"
+  image_path: "assets/skinfr_logo.png"
+  background_color: "#0a0a1a"
+  adaptive_icon_background: "#0a0a1a"
+  adaptive_icon_foreground: "assets/skinfr_logo.png"

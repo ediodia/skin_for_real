@@ -203,8 +203,9 @@ Always give personalized advice based on their specific skin type and tone. Be f
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _messages.length && _isLoading)
+                if (index == _messages.length && _isLoading) {
                   return _buildTypingIndicator(isDark);
+                }
                 final message = _messages[index];
                 final isUser = message['role'] == 'user';
                 return _buildMessage(message['content']!, isUser, isDark);
@@ -274,7 +275,7 @@ Always give personalized advice based on their specific skin type and tone. Be f
     if (isDesktop) {
       return SlideTransition(
         position: _slideAnimation,
-        child: Container(
+        child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.85,
           child: inner,
         ),

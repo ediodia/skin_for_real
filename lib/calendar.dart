@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -19,10 +20,10 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
   final ScrollController _scrollController = ScrollController();
 
   final Map<String, Color> _typeColors = {
-    'Acne-prone': Color(0xFFFF6B6B),
-    'Oily': Color(0xFFFFD93D),
-    'Dry': Color(0xFF6BCB77),
-    'Combination/Normal': Color(0xFF4D96FF),
+    'Acne-prone': const Color(0xFFFF6B6B),
+    'Oily': const Color(0xFFFFD93D),
+    'Dry': const Color(0xFF6BCB77),
+    'Combination/Normal': const Color(0xFF4D96FF),
   };
 
   final Map<String, IconData> _typeIcons = {
@@ -90,6 +91,16 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
 
   Color _getTypeColor(String? type) => _typeColors[type] ?? const Color(0xFF4D96FF);
   IconData _getTypeIcon(String? type) => _typeIcons[type] ?? Icons.face_rounded;
+
+  Map<String, int> _skinTypeToInt(String type) {
+    switch (type) {
+      case 'Acne-prone': return {'value': 1};
+      case 'Oily': return {'value': 2};
+      case 'Combination/Normal': return {'value': 3};
+      case 'Dry': return {'value': 4};
+      default: return {'value': 3};
+    }
+  }
 
   void _showEntryDetails(DateTime day) {
     final todayStr = day.toIso8601String().split('T')[0];
@@ -215,7 +226,7 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
         );
 
         if (isDesktop) {
-          return Container(
+          return SizedBox(
             height: MediaQuery.of(context).size.height * 0.85,
             child: inner,
           );
@@ -231,6 +242,200 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
           builder: (_, __) => inner,
         );
       },
+    );
+  }
+
+  Widget _buildTrendChart(bool isDark) {
+    final sorted = _entries.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    final last14 = sorted.length > 14
+        ? sorted.sublist(sorted.length - 14) : sorted;
+
+    final spots = last14.asMap().entries.map((e) {
+      final type = e.value.value['type'] as String? ?? '';
+      final val = _skinTypeToInt(type)['value']!.toDouble();
+      return FlSpot(e.key.toDouble(), val);
+    }).toList();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF16213e) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(
+          color: Colors.deepPurple.withValues(alpha: 0.08),
+          blurRadius: 16)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Skin Condition Trend',
+            style: TextStyle(fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.deepPurple.shade800)),
+          const SizedBox(height: 4),
+          Text('Last ${last14.length} days',
+            style: TextStyle(fontSize: 11,
+              color: isDark ? Colors.white38 : Colors.grey.shade500)),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 120,
+            child: LineChart(LineChartData(
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 60,
+                    getTitlesWidget: (val, _) {
+                      final labels = {
+                        1.0: 'Acne',
+                        2.0: 'Oily',
+                        3.0: 'Normal',
+                        4.0: 'Dry',
+                      };
+                      return Text(labels[val] ?? '',
+                        style: TextStyle(fontSize: 9,
+                          color: isDark ? Colors.white38 : Colors.grey));
+                    },
+                  ),
+                ),
+                bottomTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+              ),
+              minY: 0.5, maxY: 4.5,
+              lineBarsData: [
+                LineChartBarData(
+                  spots: spots,
+                  isCurved: true,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
+                  barWidth: 2.5,
+                  dotData: FlDotData(
+                    getDotPainter: (spot, _, __, ___) =>
+                      FlDotCirclePainter(
+                        radius: 4,
+                        color: const Color(0xFF7B2FBE),
+                        strokeWidth: 2,
+                        strokeColor: Colors.white,
+                      ),
+                  ),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        const Color(0xFF7B2FBE).withValues(alpha: 0.2),
+                        const Color(0xFF7B2FBE).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStreakHeatmap(bool isDark) {
+    final now = DateTime.now();
+    const weeks = 12;
+    const days = weeks * 7;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF16213e) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(
+          color: Colors.deepPurple.withValues(alpha: 0.08),
+          blurRadius: 16)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Check-in Heatmap',
+            style: TextStyle(fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : Colors.deepPurple.shade800)),
+          const SizedBox(height: 4),
+          Text('Last $weeks weeks',
+            style: TextStyle(fontSize: 11,
+              color: isDark ? Colors.white38 : Colors.grey.shade500)),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(weeks, (week) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 3),
+                  child: Column(
+                    children: List.generate(7, (day) {
+                      final date = now.subtract(
+                          Duration(days: days - (week * 7 + day) - 1));
+                      final dateStr = date.toIso8601String().split('T')[0];
+                      final hasEntry = _entries.containsKey(dateStr);
+                      final entryType = hasEntry
+                          ? _entries[dateStr]!['type'] as String? : null;
+                      final color = hasEntry
+                          ? _getTypeColor(entryType)
+                          : Colors.white.withValues(alpha: 0.06);
+
+                      return GestureDetector(
+                        onTap: hasEntry
+                            ? () => _showEntryDetails(date) : null,
+                        child: Tooltip(
+                          message: hasEntry
+                              ? '$dateStr: $entryType' : dateStr,
+                          child: Container(
+                            width: 14, height: 14,
+                            margin: const EdgeInsets.only(bottom: 3),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color: color,
+                              boxShadow: hasEntry ? [BoxShadow(
+                                color: color.withValues(alpha: 0.5),
+                                blurRadius: 4)] : null,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Text('Less', style: TextStyle(fontSize: 10,
+              color: isDark ? Colors.white38 : Colors.grey)),
+            const SizedBox(width: 6),
+            ...[0.1, 0.3, 0.5, 0.7, 1.0].map((op) => Container(
+              width: 12, height: 12,
+              margin: const EdgeInsets.only(right: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: Colors.deepPurple.withValues(alpha: op),
+              ),
+            )),
+            const SizedBox(width: 6),
+            Text('More', style: TextStyle(fontSize: 10,
+              color: isDark ? Colors.white38 : Colors.grey)),
+          ]),
+        ],
+      ),
     );
   }
 
@@ -405,6 +610,10 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
                       ),
                     ),
 
+                    const SizedBox(height: 16),
+                    if (_entries.length >= 2) _buildTrendChart(isDark),
+                    const SizedBox(height: 16),
+                    _buildStreakHeatmap(isDark),
                     const SizedBox(height: 16),
 
                     Padding(

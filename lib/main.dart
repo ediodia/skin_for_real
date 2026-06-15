@@ -1,5 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'auth_gate.dart';
+import 'auth_service.dart';
+import 'profile_hub.dart';
+import 'sound_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,6 +18,13 @@ import 'chatbot.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('Flutter error: ${details.exception}');
+    debugPrint('Stack trace: ${details.stack}');
+    FlutterError.presentError(details);
+  };
+
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyBVklbTmc1l99JThg-GnMqOIgHd3ppyCpg",
@@ -24,6 +36,7 @@ void main() async {
       measurementId: "G-0MXG9G58NF",
     ),
   );
+  await AuthService.initAuth();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -49,7 +62,7 @@ class SkinForRealApp extends StatelessWidget {
       navigatorObservers: [
         FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
       ],
-      home: const SkinAnalyzer(),
+      home: const AuthGate(),
     );
   }
 }
@@ -117,7 +130,9 @@ class _HolographicBackgroundState extends State<HolographicBackground>
     _controller2.dispose();
     _controller3.dispose();
     _swirlController.dispose();
-    for (final r in _ripples) r.controller.dispose();
+    for (final r in _ripples) {
+      r.controller.dispose();
+    }
     super.dispose();
   }
 
@@ -347,6 +362,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   String _lastSkinType = '';
   bool _loading = false;
   String _debugError = '';
+  Map<String, dynamic>? _cachedUserData;
   double _debugExposure = 0.0;
   SkinAnalysisResult? _analysisResult;
 
@@ -524,7 +540,10 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         });
         return;
       }
-      final exposure = (attributes['exposure']?['value'] ?? 0.0).toDouble();
+      final exposureRaw = attributes['exposure'];
+      final exposure = exposureRaw != null && exposureRaw['value'] != null
+          ? (exposureRaw['value'] as num).toDouble()
+          : 0.0;
       final tone = FaceApiService.estimateSkinColorLabel(attributes);
       final type = FaceApiService.detectSkinType(attributes);
       final selectedTone =
@@ -984,6 +1003,373 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     super.dispose();
   }
 
+  Widget _buildDashboardCards(bool isDark) {
+    final user = AuthService.currentUser;
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future: user != null ? AuthService.getUserDoc(user.uid) : null,
+      builder: (context, snapshot) {
+        try {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox.shrink();
+          }
+          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+            return const SizedBox.shrink();
+          }
+
+          final raw = snapshot.data!.data();
+          if (raw == null) return const SizedBox.shrink();
+          _cachedUserData = raw;
+
+          final streak = raw['streak'] ?? 0;
+          final skinProfileRaw = raw['skinProfile'];
+          final skinProfile = skinProfileRaw != null
+              ? Map<String, dynamic>.from(skinProfileRaw as Map)
+              : null;
+          final skinType = skinProfile?['skinType'] as String? ?? 'Not set';
+          final concernsRaw = skinProfile?['concerns'];
+          final concerns = concernsRaw != null
+              ? List<String>.from(concernsRaw as List)
+              : <String>[];
+          final aiPlan = skinProfile?['aiPlan'] as String?;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(child: _statTile('🔥', '$streak days',
+                    'Streak', const Color(0xFFFF9F43), isDark)),
+                const SizedBox(width: 12),
+                Expanded(child: _statTile('✨', skinType,
+                    'Skin Type', const Color(0xFF9B4DCA), isDark)),
+              ]),
+              if (concerns.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFF00D2FF).withValues(alpha: 0.25)),
+                    gradient: LinearGradient(colors: [
+                      const Color(0xFF00D2FF).withValues(alpha: 0.06),
+                      isDark ? const Color(0xFF1e1e2e).withValues(alpha: 0.9)
+                             : Colors.white.withValues(alpha: 0.9),
+                    ]),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Focus Areas',
+                        style: TextStyle(fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF00D2FF), letterSpacing: 0.5)),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8, runSpacing: 8,
+                        children: concerns.map((c) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 5),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: const Color(0xFF00D2FF).withValues(alpha: 0.1),
+                            border: Border.all(
+                              color: const Color(0xFF00D2FF).withValues(alpha: 0.25)),
+                          ),
+                          child: Text(c,
+                            style: const TextStyle(fontSize: 12,
+                              color: Color(0xFF00D2FF),
+                              fontWeight: FontWeight.w600)),
+                        )).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              _buildAiDailyTip(skinType, concerns, isDark),
+              const SizedBox(height: 16),
+              if (_tips.isNotEmpty) ...[
+                _buildLastAnalysisSummary(isDark),
+                const SizedBox(height: 16),
+              ],
+              if (aiPlan != null) ...[
+                _buildAiPlanPreview(aiPlan, isDark),
+                const SizedBox(height: 16),
+              ],
+            ],
+          );
+        } catch (e, stack) {
+          debugPrint('Dashboard error: $e');
+          debugPrint('Stack: $stack');
+          return const SizedBox.shrink();
+        }
+      },
+    );
+  }
+
+  Widget _statTile(String emoji, String value, String label,
+      Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        gradient: LinearGradient(colors: [
+          color.withValues(alpha: 0.08),
+          isDark ? const Color(0xFF1e1e2e).withValues(alpha: 0.9)
+                 : Colors.white.withValues(alpha: 0.9),
+        ]),
+      ),
+      child: Row(children: [
+        Text(emoji, style: const TextStyle(fontSize: 22)),
+        const SizedBox(width: 10),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+              style: TextStyle(fontSize: 15,
+                fontWeight: FontWeight.w800, color: color),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(label,
+              style: TextStyle(fontSize: 11,
+                color: isDark ? Colors.white38 : Colors.black38)),
+          ],
+        )),
+      ]),
+    );
+  }
+
+  Widget _buildAiDailyTip(String skinType, List<String> concerns, bool isDark) {
+    final dayOfYear = DateTime.now().difference(
+      DateTime(DateTime.now().year, 1, 1)).inDays;
+    final tips = [
+      _AiTip('💧 Hydration Check',
+        'With $skinType skin, layering a hydrating toner before moisturizer can boost absorption by up to 40%.',
+        const Color(0xFF00D2FF)),
+      _AiTip('☀️ SPF Reminder',
+        'UV rays are the #1 cause of premature aging. Reapply SPF every 2 hours if you\'re near windows.',
+        const Color(0xFFFF9F43)),
+      _AiTip('🧬 Ingredient Insight',
+        concerns.contains('Hyperpigmentation')
+          ? 'Azelaic acid + Vitamin C together can reduce dark spots 2x faster than either alone.'
+          : 'Niacinamide at 10% is clinically proven to minimize pores and regulate sebum in $skinType skin.',
+        const Color(0xFF9B4DCA)),
+      _AiTip('🌙 Nighttime Tip',
+        'Your skin repairs itself 3x faster at night. Make sure your PM routine is complete before midnight.',
+        const Color(0xFF2ED573)),
+      _AiTip('🔬 Barrier Health',
+        'Signs of a damaged barrier: tight feeling after cleansing, redness, and sensitivity. Use gentle, pH-balanced cleansers.',
+        const Color(0xFFFF6B9D)),
+    ];
+    final tip = tips[dayOfYear % tips.length];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: tip.color.withValues(alpha: 0.3)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            tip.color.withValues(alpha: 0.1),
+            isDark ? const Color(0xFF1e1e2e).withValues(alpha: 0.95)
+                   : Colors.white.withValues(alpha: 0.9),
+          ],
+        ),
+        boxShadow: [BoxShadow(
+          color: tip.color.withValues(alpha: 0.12),
+          blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: tip.color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('AI Tip of the Day',
+                style: TextStyle(fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: tip.color, letterSpacing: 0.5)),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Text(tip.title,
+            style: TextStyle(fontSize: 14,
+              fontWeight: FontWeight.w700, color: tip.color)),
+          const SizedBox(height: 6),
+          Text(tip.body,
+            style: TextStyle(fontSize: 13, height: 1.6,
+              color: isDark ? Colors.white.withValues(alpha: 0.8)
+                            : Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastAnalysisSummary(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF7B2FBE).withValues(alpha: 0.3)),
+        gradient: LinearGradient(colors: [
+          const Color(0xFF7B2FBE).withValues(alpha: 0.08),
+          isDark ? const Color(0xFF1e1e2e).withValues(alpha: 0.95)
+                 : Colors.white.withValues(alpha: 0.9),
+        ]),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Last Analysis',
+                style: TextStyle(fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF9B4DCA), letterSpacing: 0.5)),
+              GestureDetector(
+                onTap: () => _scrollController.animateTo(0,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOut),
+                child: Text('Scroll to results ↑',
+                  style: TextStyle(fontSize: 11,
+                    color: const Color(0xFF9B4DCA).withValues(alpha: 0.6))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            _QuickStat(label: 'Skin Type',
+              value: _skinType.isNotEmpty ? _skinType : 'Not scanned',
+              color: const Color(0xFF4D7CCF), isDark: isDark),
+            const SizedBox(width: 8),
+            _QuickStat(label: 'Skin Tone',
+              value: _skinColor.isNotEmpty ? _skinColor : 'Unknown',
+              color: const Color(0xFF9B4DCA), isDark: isDark),
+          ]),
+          if (_breakoutSeverity.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: _severityColor(_breakoutSeverity)
+                    .withValues(alpha: 0.15),
+              ),
+              child: Text('Breakout Status: $_breakoutSeverity',
+                style: TextStyle(fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _severityColor(_breakoutSeverity))),
+            ),
+          ],
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _pickImageFromSource(ImageSource.gallery),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.face_retouching_natural_rounded,
+                    color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text('New Analysis',
+                    style: TextStyle(fontSize: 13,
+                      fontWeight: FontWeight.w700, color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiPlanPreview(String aiPlan, bool isDark) {
+    final preview = aiPlan.length > 200
+        ? '${aiPlan.substring(0, 200)}...' : aiPlan;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF2ED573).withValues(alpha: 0.3)),
+        gradient: LinearGradient(colors: [
+          const Color(0xFF2ED573).withValues(alpha: 0.06),
+          isDark ? const Color(0xFF1e1e2e).withValues(alpha: 0.95)
+                 : Colors.white.withValues(alpha: 0.9),
+        ]),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2ED573).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text('Your AI Skin Plan',
+                style: TextStyle(fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2ED573), letterSpacing: 0.5)),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Text(preview,
+            style: TextStyle(fontSize: 13, height: 1.6,
+              color: isDark ? Colors.white.withValues(alpha: 0.75)
+                            : Colors.black87)),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => SkinChatbot(
+                  skinType: _skinType.isNotEmpty ? _skinType : 'Unknown',
+                  skinTone: _manualOverrideTone.isNotEmpty
+                      ? _manualOverrideTone : _skinColor,
+                  currentRecommendations: aiPlan,
+                ),
+              );
+            },
+            child: Row(children: [
+              const Icon(Icons.auto_awesome_rounded,
+                color: Color(0xFF2ED573), size: 14),
+              const SizedBox(width: 6),
+              Text('Ask AI about your plan',
+                style: TextStyle(fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2ED573).withValues(alpha: 0.8))),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -995,42 +1381,35 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     return Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0a0a1a) : const Color(0xFFF8F0FF),
-      floatingActionButton: _skinColor.isNotEmpty && _skinColor != 'Error'
-          ? ScaleTransition(
-              scale: _pulse,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.deepPurple.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                        spreadRadius: 2)
-                  ],
+      floatingActionButton: ScaleTransition(
+        scale: _pulse,
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(
+              color: Colors.deepPurple.withValues(alpha: 0.5),
+              blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: FloatingActionButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => SkinChatbot(
+                  skinType: _skinType.isNotEmpty ? _skinType : 'Unknown',
+                  skinTone: _manualOverrideTone.isNotEmpty
+                      ? _manualOverrideTone : _skinColor,
+                  currentRecommendations: _tips,
                 ),
-                child: FloatingActionButton(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => SkinChatbot(
-                        skinType: _skinType,
-                        skinTone: _manualOverrideTone.isNotEmpty
-                            ? _manualOverrideTone
-                            : _skinColor,
-                        currentRecommendations: _tips,
-                      ),
-                    );
-                  },
-                  backgroundColor: Colors.deepPurple,
-                  elevation: 0,
-                  child: const Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white),
-                ),
-              ),
-            )
-          : null,
+              );
+            },
+            backgroundColor: Colors.deepPurple,
+            elevation: 0,
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+          ),
+        ),
+      ),
       body: HolographicBackground(
         isDark: isDark,
         child: SafeArea(
@@ -1084,9 +1463,51 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                           ),
                         ],
                       ),
-                      _ThemeToggle(
-                          isDark: isDark,
-                          onTap: () => themeProvider.toggleTheme()),
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              showGeneralDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                barrierLabel: 'Profile',
+                                barrierColor: Colors.black.withValues(alpha: 0.5),
+                                transitionDuration: const Duration(milliseconds: 350),
+                                pageBuilder: (_, __, ___) => Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ProfileHub(preloadedData: _cachedUserData),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 10),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF7B2FBE).withValues(alpha: 0.4),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: AuthService.currentUser?.photoURL != null
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        AuthService.currentUser!.photoURL!,
+                                        width: 28, height: 28, fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Icon(Icons.person_rounded,
+                                      color: Colors.white, size: 18),
+                            ),
+                          ),
+                          _ThemeToggle(isDark: isDark, onTap: () => themeProvider.toggleTheme()),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 32),
@@ -1158,13 +1579,15 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     isDark: isDark,
                     fullWidth: true,
                     glowColor: const Color(0xFF7B2FBE),
-                    gradientColors: [
-                      const Color(0xFF7B2FBE),
-                      const Color(0xFF2F7BBE)
+                    gradientColors: const [
+                      Color(0xFF7B2FBE),
+                      Color(0xFF2F7BBE)
                     ],
                     textColor: Colors.white,
                     iconColor: Colors.white,
                   ),
+                  const SizedBox(height: 20),
+                  _buildDashboardCards(isDark),
                   const SizedBox(height: 28),
                   if (_imageFile != null)
                     TweenAnimationBuilder<double>(
@@ -1275,7 +1698,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                                             : Colors.black87)),
                               );
                             }).toList(),
-                            onChanged: _updateManualTone,
+                            onChanged: (v) { SoundService.tap(); _updateManualTone(v); },
                           ),
                         ),
                       ),
@@ -1601,6 +2024,13 @@ class _GlowButton extends StatefulWidget {
   State<_GlowButton> createState() => _GlowButtonState();
 }
 
+class _AiTip {
+  final String title;
+  final String body;
+  final Color color;
+  const _AiTip(this.title, this.body, this.color);
+}
+
 class _GlowButtonState extends State<_GlowButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
@@ -1635,7 +2065,7 @@ class _GlowButtonState extends State<_GlowButton>
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          onTap: widget.onTap,
+          onTap: () { SoundService.tap(); widget.onTap(); },
           onHighlightChanged: (pressed) {
             setState(() => _pressed = pressed);
             pressed ? _controller.forward() : _controller.reverse();
