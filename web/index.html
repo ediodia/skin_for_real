@@ -62,6 +62,25 @@
       justify-content: center;
     }
 
+    #sfr-loader::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 25% 35%, rgba(123,47,190,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 45% at 75% 65%, rgba(103,232,249,0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 55% 15%, rgba(217,70,168,0.14) 0%, transparent 60%);
+      animation: auroraShift 6s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes auroraShift {
+      0%   { opacity: 0.7; transform: scale(1)   rotate(0deg); }
+      50%  { opacity: 1;   transform: scale(1.05) rotate(1deg); }
+      100% { opacity: 0.8; transform: scale(0.97) rotate(-1deg); }
+    }
+
     #sfr-loader.wipe-out { pointer-events: none; }
 
     #loader-canvas {
@@ -765,7 +784,7 @@
       setTimeout(() => {
         document.getElementById('sfr-demo')?.classList.add('visible');
         _demoTimer = setInterval(() => _goSlide(_demoSlide+1), 3200);
-      }, 1500);
+      }, 550);
 
       let W, H;
       const resize = () => {
@@ -775,9 +794,9 @@
       resize();
       window.addEventListener('resize', resize);
 
-      setTimeout(() => logo.classList.add('visible'), 300);
-      setTimeout(() => sub.classList.add('visible'), 600);
-      setTimeout(() => progressLabel.classList.add('visible'), 800);
+      setTimeout(() => logo.classList.add('visible'), 80);
+      setTimeout(() => sub.classList.add('visible'), 220);
+      setTimeout(() => progressLabel.classList.add('visible'), 350);
 
 
       const loaderRipples = [];
@@ -850,10 +869,10 @@
 
       const floaters = Array.from({length: 35}, () => ({
         x: Math.random()*window.innerWidth, y: Math.random()*window.innerHeight,
-        r: Math.random()*2+0.5,
+        r: Math.random()*4+1,
         vx: (Math.random()-0.5)*0.25, vy: (Math.random()-0.5)*0.25,
         color: colors[Math.floor(Math.random()*colors.length)],
-        alpha: Math.random()*0.4+0.1
+        alpha: Math.random()*0.55+0.2
       }));
 
       function drawLoader() {
