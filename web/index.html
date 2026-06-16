@@ -123,66 +123,175 @@
       100% { background-position: 0% 50%; }
     }
 
-    #hint-container {
-      position: absolute;
-      bottom: 12%;
-      left: 50%;
-      transform: translateX(-50%);
+    #sfr-demo {
+      position: relative;
       z-index: 3;
-      display: flex;
+      width: 90%;
+      max-width: 420px;
+      margin-top: 4px;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    #sfr-demo.visible { opacity: 1; transform: translateY(0); }
+
+    .demo-slide {
+      display: none;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
-      width: 90%;
-      max-width: 380px;
+    }
+    .demo-slide.active { display: flex; animation: demoIn 0.45s ease; }
+    @keyframes demoIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    .hint-pill {
+    .demo-title {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: clamp(17px, 3.5vw, 20px);
+      font-weight: 700;
+      color: white;
+      margin-bottom: 3px;
+      text-align: center;
+    }
+    .demo-sub {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.38);
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .demo-card {
+      width: 100%;
+      background: rgba(167,139,250,0.05);
+      border: 1px solid rgba(167,139,250,0.16);
+      border-radius: 20px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .demo-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg,rgba(217,70,168,0.04),rgba(103,232,249,0.03));
+      pointer-events: none;
+    }
+
+    /* Slide 1 */
+    .scan-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .scan-face {
+      width: 62px; height: 78px;
+      border-radius: 31px 31px 26px 26px;
+      border: 1.5px solid rgba(167,139,250,0.35);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      background: rgba(167, 139, 250, 0.06);
-      border: 1px solid rgba(167, 139, 250, 0.18);
+      font-size: 28px;
+      filter: saturate(0) brightness(0.5);
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg,transparent,#67e8f9,transparent);
+      box-shadow: 0 0 6px #67e8f9;
+      animation: scanDown 2s ease-in-out infinite;
+    }
+    @keyframes scanDown {
+      0%   { top: 0%;   opacity: 0; }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(46,213,115,0.1);
+      border: 1px solid rgba(46,213,115,0.28);
       border-radius: 100px;
-      padding: 10px 20px;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 5px 12px;
+      font-family: -apple-system, sans-serif;
       font-size: 13px;
-      color: rgba(255,255,255,0.65);
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.4s ease, background 0.4s ease, color 0.4s ease;
-      white-space: normal;
+      font-weight: 700;
+      color: #2ed573;
+      margin-bottom: 8px;
+    }
+    .metric-row { display: flex; gap: 7px; }
+    .metric-chip {
+      flex: 1;
+      background: rgba(167,139,250,0.07);
+      border: 1px solid rgba(167,139,250,0.13);
+      border-radius: 10px;
+      padding: 8px 4px;
       text-align: center;
-      width: 100%;
+      font-family: -apple-system, sans-serif;
+    }
+    .m-val { font-size: 13px; font-weight: 700; color: rgba(167,139,250,0.9); }
+    .m-label { font-size: 9px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+
+    /* Slide 2 */
+    .routine-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 11px;
+      margin-bottom: 7px;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .routine-row.in { opacity: 1; transform: translateX(0); }
+    .r-icon { font-size: 18px; width: 30px; text-align: center; }
+    .r-name { font-family: -apple-system, sans-serif; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.82); }
+    .r-tag  { font-family: -apple-system, sans-serif; font-size: 10px; color: rgba(167,139,250,0.55); }
+
+    /* Slide 3 */
+    .chart-wrap { position: relative; height: 72px; width: 100%; margin-bottom: 6px; }
+    .chart-svg { width: 100%; height: 100%; }
+    .chart-line {
+      fill: none;
+      stroke: url(#chartGrad);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 600;
+      stroke-dashoffset: 600;
+      animation: drawLine 1.4s ease forwards;
+    }
+    .chart-area { fill: url(#areaGrad); opacity: 0; animation: areaFade 1.4s ease forwards; }
+    @keyframes drawLine { to { stroke-dashoffset: 0; } }
+    @keyframes areaFade { 0% { opacity: 0; } 100% { opacity: 0.25; } }
+    .day-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: -apple-system, sans-serif;
+      font-size: 9px;
+      color: rgba(255,255,255,0.22);
     }
 
-    .hint-pill.visible { opacity: 1; transform: translateY(0); }
-
-    .hint-pill.done {
-      border-color: rgba(103, 232, 249, 0.35);
-      background: rgba(103, 232, 249, 0.06);
-      color: rgba(103, 232, 249, 0.85);
+    /* Dots */
+    .demo-dots { display: flex; gap: 6px; margin-top: 14px; }
+    .demo-dot {
+      height: 6px; border-radius: 3px;
+      background: rgba(167,139,250,0.25);
+      transition: width 0.3s ease, background 0.3s ease;
+      width: 6px;
     }
-
-    .hint-icon { font-size: 17px; flex-shrink: 0; }
+    .demo-dot.active { width: 22px; background: #a78bfa; }
 
     @media (max-width: 420px) {
-      .hint-pill {
-        font-size: 12px;
-        padding: 9px 16px;
-        border-radius: 20px;
-      }
-      #hint-container {
-        width: 92%;
-        bottom: 14%;
-        gap: 8px;
-      }
-      #loader-sub {
-        font-size: 10px;
-        letter-spacing: 2px;
-        margin-bottom: 40px;
-      }
+      #loader-sub { font-size: 10px; letter-spacing: 2px; margin-bottom: 36px; }
+      .demo-title { font-size: 16px; }
+      .demo-card { padding: 14px; border-radius: 16px; }
     }
 
     #progress-wrap {
@@ -365,12 +474,77 @@
     <canvas id="loader-canvas"></canvas>
     <div id="loader-logo">SkinForReal</div>
     <div id="loader-sub">Know your skin. For real.</div>
-    <div id="hint-container">
-      <div class="hint-pill" id="hint1"><span class="hint-icon">👆</span><span>tap anywhere to make shockwaves</span></div>
-      <div class="hint-pill" id="hint2"><span class="hint-icon">✨</span><span>drag to paint a comet trail</span></div>
-      <div class="hint-pill" id="hint3"><span class="hint-icon">🧬</span><span>AI-powered skin analysis for your exact face</span></div>
-      <div class="hint-pill" id="hint4"><span class="hint-icon">🎯</span><span>personalized routines, ingredients & derm alerts</span></div>
-      <div class="hint-pill" id="hint5"><span class="hint-icon">🚀</span><span>loading your experience...</span></div>
+    <div id="sfr-demo">
+
+      <!-- Slide 1: AI Analysis -->
+      <div class="demo-slide active" id="demo-s1">
+        <div class="demo-title">Know Your Skin</div>
+        <div class="demo-sub">AI reads your skin in seconds</div>
+        <div class="demo-card">
+          <div class="scan-wrap">
+            <div class="scan-face">🧑<div class="scan-line"></div></div>
+            <div style="flex:1">
+              <div class="score-badge">✦ Skin Score 82/100</div>
+              <div style="font-family:-apple-system,sans-serif;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">Healthy glow detected.<br>No active breakouts.</div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-chip"><div class="m-val">Good</div><div class="m-label">Hydration</div></div>
+            <div class="metric-chip"><div class="m-val">Low</div><div class="m-label">Oiliness</div></div>
+            <div class="metric-chip"><div class="m-val">Clear</div><div class="m-label">Breakout</div></div>
+            <div class="metric-chip"><div class="m-val">Smooth</div><div class="m-label">Texture</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2: Routine -->
+      <div class="demo-slide" id="demo-s2">
+        <div class="demo-title">Your Skin Plan</div>
+        <div class="demo-sub">Personalized AM &amp; PM routine</div>
+        <div class="demo-card">
+          <div style="font-family:-apple-system,sans-serif;font-size:10px;color:rgba(103,232,249,0.65);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:9px">☀️ Morning Routine</div>
+          <div class="routine-row" id="rr1"><span class="r-icon">💧</span><div><div class="r-name">Gentle Cleanser</div><div class="r-tag">Removes overnight buildup</div></div></div>
+          <div class="routine-row" id="rr2"><span class="r-icon">✨</span><div><div class="r-name">Vitamin C Serum</div><div class="r-tag">Brightening · Antioxidant</div></div></div>
+          <div class="routine-row" id="rr3"><span class="r-icon">🌿</span><div><div class="r-name">Niacinamide 10%</div><div class="r-tag">Pore-minimizing · Oil control</div></div></div>
+          <div class="routine-row" id="rr4"><span class="r-icon">☀️</span><div><div class="r-name">SPF 50 Moisturizer</div><div class="r-tag">UV protection · Hydration</div></div></div>
+        </div>
+      </div>
+
+      <!-- Slide 3: Progress Chart -->
+      <div class="demo-slide" id="demo-s3">
+        <div class="demo-title">Track Progress</div>
+        <div class="demo-sub">Watch your skin improve over time</div>
+        <div class="demo-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-family:-apple-system,sans-serif;font-size:11px;color:rgba(255,255,255,0.4)">30-day skin score</span>
+            <span style="font-family:-apple-system,sans-serif;font-size:12px;font-weight:700;color:#2ed573">↑ +18 pts</span>
+          </div>
+          <div class="chart-wrap">
+            <svg class="chart-svg" id="demo-chart-svg" viewBox="0 0 300 72" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#d946a8"/>
+                  <stop offset="50%" stop-color="#a78bfa"/>
+                  <stop offset="100%" stop-color="#67e8f9"/>
+                </linearGradient>
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path class="chart-area" d="M0,62 C40,58 60,52 90,54 C120,56 130,44 160,38 C190,32 220,24 260,16 L300,10 L300,72 L0,72 Z"/>
+              <path class="chart-line" d="M0,62 C40,58 60,52 90,54 C120,56 130,44 160,38 C190,32 220,24 260,16 L300,10"/>
+            </svg>
+          </div>
+          <div class="day-labels"><span>Day 1</span><span>Day 10</span><span>Day 20</span><span>Today</span></div>
+        </div>
+      </div>
+
+      <div class="demo-dots">
+        <div class="demo-dot active" id="dot0"></div>
+        <div class="demo-dot" id="dot1"></div>
+        <div class="demo-dot" id="dot2"></div>
+      </div>
     </div>
     <div id="progress-label">0%</div>
     <div id="progress-wrap"><div id="progress-bar"></div></div>
@@ -557,7 +731,41 @@
       const progressLabel = document.getElementById('progress-label');
       const logo = document.getElementById('loader-logo');
       const sub = document.getElementById('loader-sub');
-      const hints = [1,2,3,4,5].map(i => document.getElementById('hint'+i));
+      // Demo carousel
+      let _demoSlide = 0;
+      const _demoSlides = ['demo-s1','demo-s2','demo-s3'];
+      const _demoDots   = [0,1,2].map(i => document.getElementById('dot'+i));
+      let _demoTimer = null;
+
+      function _goSlide(idx) {
+        document.getElementById(_demoSlides[_demoSlide])?.classList.remove('active');
+        _demoDots[_demoSlide]?.classList.remove('active');
+        _demoSlide = idx % _demoSlides.length;
+        document.getElementById(_demoSlides[_demoSlide])?.classList.add('active');
+        _demoDots[_demoSlide]?.classList.add('active');
+        if (_demoSlide === 1) {
+          ['rr1','rr2','rr3','rr4'].forEach((id,i) => {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('in'); setTimeout(() => el.classList.add('in'), i * 160 + 60); }
+          });
+        }
+        if (_demoSlide === 2) {
+          const svg = document.getElementById('demo-chart-svg');
+          if (svg) {
+            const l = svg.querySelector('.chart-line');
+            const a = svg.querySelector('.chart-area');
+            [l, a].forEach(el => { if (el) { el.style.animation='none'; void el.offsetWidth; el.style.animation=''; } });
+          }
+        }
+      }
+      window._goSlide = _goSlide;
+
+      _demoDots.forEach((d, i) => d?.addEventListener('pointerdown', e => { e.stopPropagation(); clearInterval(_demoTimer); _goSlide(i); _demoTimer = setInterval(() => _goSlide(_demoSlide+1), 3200); }));
+
+      setTimeout(() => {
+        document.getElementById('sfr-demo')?.classList.add('visible');
+        _demoTimer = setInterval(() => _goSlide(_demoSlide+1), 3200);
+      }, 1500);
 
       let W, H;
       const resize = () => {
@@ -571,8 +779,6 @@
       setTimeout(() => sub.classList.add('visible'), 600);
       setTimeout(() => progressLabel.classList.add('visible'), 800);
 
-      const hintTimes = [1200, 2800, 4400, 6000, 7600];
-      hints.forEach((h, i) => setTimeout(() => h && h.classList.add('visible'), hintTimes[i]));
 
       const loaderRipples = [];
       const loaderComets = [];
@@ -708,7 +914,6 @@
         const fv = document.querySelector('flt-glass-pane, flutter-view, flt-scene, flt-renderer-canvas');
         if (fv) {
           observer.disconnect();
-          hints.forEach(h => h && h.classList.add('done'));
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
@@ -717,6 +922,7 @@
       window.sfr_appReady = function() {
         if (wipeTriggered) return;
         clearInterval(progInterval);
+        clearInterval(_demoTimer);
         prog = 100;
         progressBar.style.width = '100%';
         progressLabel.textContent = '100%';
