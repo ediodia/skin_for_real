@@ -100,7 +100,7 @@ User Profile:
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'claude-sonnet-4-20250514',
+          'model': 'llama-3.3-70b-versatile',
           'max_tokens': 1000,
           'messages': [
             {'role': 'user', 'content': prompt}
@@ -144,6 +144,7 @@ User Profile:
             ...widget.skinProfile,
             'aiPlan': text,
             'aiPlanGeneratedAt': DateTime.now().toIso8601String(),
+            'completedAt': DateTime.now().toIso8601String(),
           },
         );
       } else {
@@ -417,7 +418,7 @@ User Profile:
                     color: Colors.white)),
           ),
           const SizedBox(height: 8),
-          Text('Claude AI is building your routine',
+          Text('AI is building your routine',
               style: TextStyle(
                   fontSize: 13, color: Colors.white.withValues(alpha: 0.35))),
         ],

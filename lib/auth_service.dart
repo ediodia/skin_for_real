@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 
 class AuthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -34,7 +37,11 @@ class AuthService {
   }
 
   static Future<void> getOrCreateUserDocument(User user) async {
-    await _db.collection('users').doc(user.uid).set(
+    final docRef = _db.collection('users').doc(user.uid);
+    final docSnapshot = await docRef.get();
+    final isNew = !docSnapshot.exists;
+
+    await docRef.set(
       {
         'uid': user.uid,
         'email': user.email ?? '',
@@ -43,10 +50,28 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
         'streak': 0,
         'lastCheckIn': null,
-        'skinProfile': null,
+        if (isNew) 'skinProfile': null,
       },
       SetOptions(merge: true),
     );
+
+    if (isNew) {
+      _sendWelcomeEmail(user.email ?? '', user.displayName ?? '');
+    }
+  }
+
+  static void _sendWelcomeEmail(String email, String displayName) {
+    () async {
+      try {
+        await http.post(
+          Uri.parse('https://sendwelcomeemail-yp4lhrod3q-uc.a.run.app'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'displayName': displayName}),
+        );
+      } catch (e) {
+        debugPrint('Welcome email error: $e');
+      }
+    }();
   }
 
   static Future<void> saveSkinProfile({

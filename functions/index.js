@@ -1,5 +1,4 @@
 const { onRequest } = require('firebase-functions/v2/https');
-const functionsV1 = require('firebase-functions/v1');
 const https = require('https');
 
 exports.claudeProxy = onRequest({
@@ -25,8 +24,9 @@ exports.claudeProxy = onRequest({
   }
 
   const body = JSON.stringify({
-    model: 'llama-3.3-70b-versatile',
-    max_tokens: 1000,
+    model: req.body.model || 'llama-3.3-70b-versatile',
+    max_tokens: req.body.max_tokens || 2048,
+    temperature: req.body.temperature,
     messages: req.body.messages,
   });
 
@@ -70,75 +70,93 @@ exports.claudeProxy = onRequest({
   proxyReq.end();
 });
 
-exports.sendWelcomeEmail = functionsV1
-  .runWith({ secrets: ['RESEND_KEY'] })
-  .auth.user()
-  .onCreate(async (user) => {
-    const apiKey = process.env.RESEND_KEY;
-    if (!apiKey) {
-      console.error('RESEND_KEY not set');
-      return;
-    }
+exports.sendWelcomeEmail = onRequest({
+  cors: true,
+  secrets: ['RESEND_KEY'],
+  region: 'us-central1',
+}, async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
 
-    const firstName = user.displayName?.split(' ')[0] || 'there';
-    const email = user.email;
-    if (!email) return;
+  if (req.method !== 'POST') {
+    res.status(405).send('Method not allowed');
+    return;
+  }
 
-    const html = `
-      <div style="font-family: -apple-system, sans-serif; background: #0a0a1a; padding: 40px; border-radius: 16px; color: #ffffff;">
-        <h1 style="background: linear-gradient(135deg, #B76EF5, #6EE4F5, #F56EB7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 32px; font-weight: 800; margin: 0 0 12px;">
-          Welcome to SkinForReal ✨
-        </h1>
-        <p style="font-size: 16px; color: #cccccc; line-height: 1.6;">
-          Hey ${firstName} 👋
-        </p>
-        <p style="font-size: 15px; color: #aaaaaa; line-height: 1.7;">
-          Your skin journey just got smarter. We use AI-powered analysis to understand your skin type, track your progress over time, and build a routine that actually works for you.
-        </p>
-        <div style="margin: 28px 0; padding: 20px; background: rgba(123,47,190,0.1); border: 1px solid rgba(123,47,190,0.3); border-radius: 12px;">
-          <p style="margin: 0; font-size: 14px; color: #B76EF5; font-weight: 700;">Quick tip:</p>
-          <p style="margin: 8px 0 0; font-size: 14px; color: #cccccc;">
-            Try the face analyzer for a deeper look at your skin — it's the fastest way to get personalized recommendations.
-          </p>
-        </div>
-        <p style="font-size: 13px; color: #666666;">
-          See you in the app 🧬
+  const apiKey = process.env.RESEND_KEY;
+  if (!apiKey) {
+    console.error('RESEND_KEY not set');
+    res.status(500).json({ error: 'RESEND_KEY not configured' });
+    return;
+  }
+
+  const { email, displayName } = req.body;
+  if (!email) {
+    res.status(400).json({ error: 'email required' });
+    return;
+  }
+
+  const firstName = displayName?.split(' ')[0] || 'there';
+
+  const html = `
+    <div style="font-family: -apple-system, sans-serif; background: #0a0a1a; padding: 40px; border-radius: 16px; color: #ffffff;">
+      <h1 style="background: linear-gradient(135deg, #B76EF5, #6EE4F5, #F56EB7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 32px; font-weight: 800; margin: 0 0 12px;">
+        Welcome to SkinForReal ✨
+      </h1>
+      <p style="font-size: 16px; color: #cccccc; line-height: 1.6;">
+        Hey ${firstName} 👋
+      </p>
+      <p style="font-size: 15px; color: #aaaaaa; line-height: 1.7;">
+        Your skin journey just got smarter. We use AI-powered analysis to understand your skin type, track your progress over time, and build a routine that actually works for you.
+      </p>
+      <div style="margin: 28px 0; padding: 20px; background: rgba(123,47,190,0.1); border: 1px solid rgba(123,47,190,0.3); border-radius: 12px;">
+        <p style="margin: 0; font-size: 14px; color: #B76EF5; font-weight: 700;">Quick tip:</p>
+        <p style="margin: 8px 0 0; font-size: 14px; color: #cccccc;">
+          Try the face analyzer for a deeper look at your skin — it's the fastest way to get personalized recommendations.
         </p>
       </div>
-    `;
+      <p style="font-size: 13px; color: #666666;">
+        See you in the app 🧬
+      </p>
+    </div>
+  `;
 
-    const body = JSON.stringify({
-      from: 'SkinForReal <onboarding@resend.dev>',
-      to: [email],
-      subject: 'Welcome to SkinForReal ✨',
-      html: html,
-    });
-
-    const options = {
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Length': Buffer.byteLength(body),
-      },
-    };
-
-    return new Promise((resolve, reject) => {
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          console.log('Resend response:', res.statusCode, data);
-          resolve();
-        });
-      });
-      req.on('error', (e) => {
-        console.error('Resend error:', e);
-        reject(e);
-      });
-      req.write(body);
-      req.end();
-    });
+  const body = JSON.stringify({
+    from: 'SkinForReal <onboarding@resend.dev>',
+    to: [email],
+    subject: 'Welcome to SkinForReal ✨',
+    html: html,
   });
+
+  const options = {
+    hostname: 'api.resend.com',
+    path: '/emails',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Length': Buffer.byteLength(body),
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const emailReq = https.request(options, (emailRes) => {
+      let data = '';
+      emailRes.on('data', chunk => data += chunk);
+      emailRes.on('end', () => {
+        console.log('Resend response:', emailRes.statusCode, data);
+        res.status(emailRes.statusCode).json({ ok: true });
+        resolve();
+      });
+    });
+    emailReq.on('error', (e) => {
+      console.error('Resend error:', e);
+      res.status(500).json({ error: e.message });
+      reject(e);
+    });
+    emailReq.write(body);
+    emailReq.end();
+  });
+});

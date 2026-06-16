@@ -129,10 +129,18 @@ class _WelcomeBackScreenState extends State<WelcomeBackScreen>
                           ),
                           child: ClipOval(
                             child: photoUrl != null
-                                ? Image.network(photoUrl, fit: BoxFit.cover,
+                                ? Image.network(
+                                    photoUrl,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (_, child, progress) =>
+                                        progress == null
+                                            ? child
+                                            : const Icon(Icons.person_rounded,
+                                                color: Colors.white, size: 40),
                                     errorBuilder: (_, __, ___) => const Icon(
                                         Icons.person_rounded,
-                                        color: Colors.white, size: 40))
+                                        color: Colors.white, size: 40),
+                                  )
                                 : const Icon(Icons.person_rounded,
                                     color: Colors.white, size: 40),
                           ),

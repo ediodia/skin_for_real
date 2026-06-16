@@ -15,7 +15,6 @@ class _ProfileHubState extends State<ProfileHub>
   late AnimationController _slideController;
   late Animation<Offset> _slideIn;
   Map<String, dynamic>? _userData;
-  bool _loading = true;
 
   @override
   void initState() {
@@ -29,7 +28,6 @@ class _ProfileHubState extends State<ProfileHub>
 
     if (widget.preloadedData != null) {
       _userData = widget.preloadedData;
-      _loading = false;
     } else {
       _loadUserData();
     }
@@ -48,7 +46,6 @@ class _ProfileHubState extends State<ProfileHub>
     if (mounted) {
       setState(() {
         _userData = doc.data();
-        _loading = false;
       });
     }
   }
@@ -93,14 +90,11 @@ class _ProfileHubState extends State<ProfileHub>
           ],
         ),
         child: SafeArea(
-          child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF7B2FBE)))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                       Align(
                         alignment: Alignment.topRight,
                         child: GestureDetector(

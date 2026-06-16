@@ -1,15 +1,33 @@
+// ignore_for_file: deprecated_member_use, avoid_web_libraries_in_flutter
+import 'dart:js' as js;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'landing_page.dart';
+import 'main.dart';
 import 'skin_profile_onboarding.dart';
 import 'onboarding_welcome_screen.dart';
-import 'main.dart';
-import 'welcome_back_screen.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _calledReady = false;
+
+  void _signalReady() {
+    if (_calledReady) return;
+    _calledReady = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        js.context.callMethod('sfr_appReady', []);
+      } catch (_) {}
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +38,10 @@ class AuthGate extends StatelessWidget {
           return const _SplashScreen();
         }
         final user = authSnapshot.data;
-        if (user == null) return const LandingPage();
+        if (user == null) {
+          _signalReady();
+          return const LandingPage();
+        }
 
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
           stream: AuthService.userDocStream(user.uid),
@@ -29,19 +50,22 @@ class AuthGate extends StatelessWidget {
               return const _SplashScreen();
             }
             if (docSnapshot.hasError) {
+              _signalReady();
               return SkinProfileOnboarding(user: user);
             }
             if (!docSnapshot.hasData || !docSnapshot.data!.exists) {
               Future.microtask(() => AuthService.getOrCreateUserDocument(user));
+              _signalReady();
               return SkinProfileOnboarding(user: user);
             }
             final data = docSnapshot.data!.data() ?? {};
             final skinProfile = data['skinProfile'];
+            _signalReady();
             if (skinProfile == null) return OnboardingWelcomeScreen(user: user);
             final completed = skinProfile['completedAt'] != null ||
                 skinProfile['skipped'] == true;
             if (!completed) return SkinProfileOnboarding(user: user);
-            return WelcomeBackScreen(user: user);
+            return const SkinAnalyzer();
           },
         );
       },
@@ -68,11 +92,6 @@ class _SplashScreenState extends State<_SplashScreen>
       ..repeat(reverse: true);
     _scale = Tween<double>(begin: 0.92, end: 1.08).animate(
         CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
-
-    // Safety timeout — force sign out so user lands on LandingPage
-    Future.delayed(const Duration(seconds: 6), () {
-      if (mounted) AuthService.signOut();
-    });
   }
 
   @override

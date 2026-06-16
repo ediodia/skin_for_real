@@ -27,6 +27,12 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png" />
 
+  <!-- Speed: preconnect to Firebase/Google domains -->
+  <link rel="preconnect" href="https://firebaseapp.com">
+  <link rel="preconnect" href="https://googleapis.com">
+  <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://us-central1-skinforreal-aa846.cloudfunctions.net">
+
   <title>SkinForReal</title>
   <link rel="manifest" href="manifest.json">
 
@@ -297,7 +303,7 @@
     }
 
     #sfr-settings-btn {
-      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      position: fixed; bottom: 84px; right: 24px; z-index: 9999;
       width: 40px; height: 40px; border-radius: 50%;
       background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.2);
       display: flex; align-items: center; justify-content: center;
@@ -532,6 +538,14 @@
     document.addEventListener('touchend', stopFlow, { capture: true, passive: true });
     document.addEventListener('touchcancel', stopFlow, { capture: true, passive: true });
 
+    // Stop flow if the window loses focus mid-drag (alt-tab, cursor left window, etc.)
+    window.addEventListener('blur', stopFlow);
+
+    // Detect mouse button released while pointer was outside the window (no pointerup received)
+    document.addEventListener('pointermove', e => {
+      if (_isHolding && e.buttons === 0) stopFlow();
+    }, { capture: true, passive: true });
+
     // ── LOADER ──
     (function() {
       const loader = document.getElementById('sfr-loader');
@@ -681,30 +695,36 @@
       drawLoader();
 
       let prog = 0;
-      let flutterReady = false;
       let wipeTriggered = false;
 
       const progInterval = setInterval(() => {
         if (wipeTriggered) return;
-        const target = flutterReady ? 100 : 88;
-        const step = flutterReady ? 3 : (Math.random() * 1.2 + 0.3);
-        prog = Math.min(prog + step, target);
+        prog = Math.min(prog + Math.random() * 1.2 + 0.3, 88);
         progressBar.style.width = prog + '%';
         progressLabel.textContent = Math.floor(prog) + '%';
-        if (prog >= 100 && !wipeTriggered) triggerWipe();
       }, 180);
 
       const observer = new MutationObserver(() => {
         const fv = document.querySelector('flt-glass-pane, flutter-view, flt-scene, flt-renderer-canvas');
         if (fv) {
           observer.disconnect();
-          flutterReady = true;
           hints.forEach(h => h && h.classList.add('done'));
         }
       });
       observer.observe(document.body, { childList: true, subtree: true });
 
-      setTimeout(() => { flutterReady = true; }, 4000);
+      // Dart calls this once the final screen is ready — loader wipes directly into real content
+      window.sfr_appReady = function() {
+        if (wipeTriggered) return;
+        clearInterval(progInterval);
+        prog = 100;
+        progressBar.style.width = '100%';
+        progressLabel.textContent = '100%';
+        requestAnimationFrame(triggerWipe);
+      };
+
+      // Fallback: force wipe after 12s in case sfr_appReady is never called
+      setTimeout(() => { if (!wipeTriggered) window.sfr_appReady(); }, 12000);
 
       function triggerWipe() {
         wipeTriggered = true;
@@ -798,6 +818,7 @@
       let _ambientStarted = false;
       let _flowNodes = null;
       let _isFlowing = false;
+      let _flowSafetyTimer = null;
 
       function getCtx() {
         if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -993,9 +1014,13 @@
         const rv = ctx.createGain(); rv.gain.value = 0.3;
         reverb.connect(rv); rv.connect(getSfxGain()); masterFlow.connect(reverb);
         _flowNodes = { masterFlow, sources, ctx };
+        // Safety: if flow never gets a stop signal, kill it after 10s
+        _flowSafetyTimer = setTimeout(() => window.sfr_stopFlow(), 10000);
       };
 
       window.sfr_stopFlow = function () {
+        clearTimeout(_flowSafetyTimer);
+        _flowSafetyTimer = null;
         if (!_isFlowing || !_flowNodes) return;
         _isFlowing = false;
         const { masterFlow, sources, ctx } = _flowNodes;

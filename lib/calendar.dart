@@ -18,6 +18,7 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
   late AnimationController _fadeController;
   late Animation<double> _fadeIn;
   final ScrollController _scrollController = ScrollController();
+  int _trendDays = 14;
 
   final Map<String, Color> _typeColors = {
     'Acne-prone': const Color(0xFFFF6B6B),
@@ -91,16 +92,6 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
 
   Color _getTypeColor(String? type) => _typeColors[type] ?? const Color(0xFF4D96FF);
   IconData _getTypeIcon(String? type) => _typeIcons[type] ?? Icons.face_rounded;
-
-  Map<String, int> _skinTypeToInt(String type) {
-    switch (type) {
-      case 'Acne-prone': return {'value': 1};
-      case 'Oily': return {'value': 2};
-      case 'Combination/Normal': return {'value': 3};
-      case 'Dry': return {'value': 4};
-      default: return {'value': 3};
-    }
-  }
 
   void _showEntryDetails(DateTime day) {
     final todayStr = day.toIso8601String().split('T')[0];
@@ -191,6 +182,10 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
                         ),
                       )
                     else ...[
+                      if (entry['skin_score'] != null) ...[
+                        _buildScoreRow(entry, isDark),
+                        const SizedBox(height: 12),
+                      ],
                       if (entry['color'] != null)
                         _PopupCard(
                           title: 'Skin Tone',
@@ -199,6 +194,10 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
                           color: Colors.purple,
                           isDark: isDark,
                         ),
+                      if (_hasDetailMetrics(entry)) ...[
+                        const SizedBox(height: 12),
+                        _buildMetricsRow(entry, isDark),
+                      ],
                       const SizedBox(height: 12),
                       if (entry['tips'] != null)
                         _PopupCard(
@@ -245,17 +244,133 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
     );
   }
 
+  bool _hasDetailMetrics(Map<String, dynamic> entry) {
+    return entry['fine_lines'] != null ||
+        entry['pore_visibility'] != null ||
+        entry['texture'] != null ||
+        entry['hydration'] != null;
+  }
+
+  Widget _buildScoreRow(Map<String, dynamic> entry, bool isDark) {
+    final score = (entry['skin_score'] as num).toInt();
+    Color scoreColor;
+    String label;
+    if (score >= 70) {
+      scoreColor = const Color(0xFF2ED573);
+      label = 'Good';
+    } else if (score >= 50) {
+      scoreColor = const Color(0xFFFFD93D);
+      label = 'Fair';
+    } else {
+      scoreColor = const Color(0xFFFF4757);
+      label = 'Needs care';
+    }
+    return Row(
+      children: [
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: score / 100.0,
+                strokeWidth: 5,
+                backgroundColor: scoreColor.withValues(alpha: 0.15),
+                valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+              ),
+              Text('$score',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: scoreColor)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Skin Health Score',
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : Colors.black87)),
+            const SizedBox(height: 3),
+            Text(label,
+                style: TextStyle(fontSize: 11, color: scoreColor, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricsRow(Map<String, dynamic> entry, bool isDark) {
+    final chips = <(String, Color)>[];
+    final fl = entry['fine_lines'] as String?;
+    if (fl != null && fl != 'Unknown') chips.add(('Fine Lines: $fl', const Color(0xFF818CF8)));
+    final pv = entry['pore_visibility'] as String?;
+    if (pv != null && pv != 'Unknown') chips.add(('Pores: $pv', const Color(0xFF00D2FF)));
+    final tx = entry['texture'] as String?;
+    if (tx != null && tx != 'Unknown') chips.add(('Texture: $tx', const Color(0xFF2ED573)));
+    final hy = entry['hydration'] as String?;
+    if (hy != null && hy != 'Unknown') chips.add(('Hydration: $hy', const Color(0xFF4D96FF)));
+    final os = entry['oiliness_score'];
+    if (os != null) chips.add(('Oiliness: $os/10', const Color(0xFFFFD93D)));
+
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: chips.map((c) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: c.$2.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: c.$2.withValues(alpha: 0.25)),
+          ),
+          child: Text(c.$1,
+              style: TextStyle(
+                  fontSize: 10,
+                  color: c.$2,
+                  fontWeight: FontWeight.w600)),
+        );
+      }).toList(),
+    );
+  }
+
+  double _entryToScore(MapEntry<String, Map<String, dynamic>> e) {
+    final raw = e.value['skin_score'];
+    if (raw != null) return (raw as num).toDouble().clamp(0, 100);
+    final type = e.value['type'] as String? ?? '';
+    switch (type) {
+      case 'Acne-prone': return 35.0;
+      case 'Oily': return 60.0;
+      case 'Dry': return 62.0;
+      default: return 75.0;
+    }
+  }
+
   Widget _buildTrendChart(bool isDark) {
     final sorted = _entries.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
-    final last14 = sorted.length > 14
-        ? sorted.sublist(sorted.length - 14) : sorted;
+    final lastN = sorted.length > _trendDays
+        ? sorted.sublist(sorted.length - _trendDays)
+        : sorted;
 
-    final spots = last14.asMap().entries.map((e) {
-      final type = e.value.value['type'] as String? ?? '';
-      final val = _skinTypeToInt(type)['value']!.toDouble();
-      return FlSpot(e.key.toDouble(), val);
+    final spots = lastN.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), _entryToScore(e.value));
     }).toList();
+
+    final avgScore = lastN.isEmpty
+        ? 0.0
+        : lastN.map(_entryToScore).reduce((a, b) => a + b) / lastN.length;
+
+    Color scoreColor(double s) {
+      if (s >= 70) return const Color(0xFF2ED573);
+      if (s >= 50) return const Color(0xFFFFD93D);
+      return const Color(0xFFFF4757);
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -270,77 +385,156 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Skin Condition Trend',
-            style: TextStyle(fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : Colors.deepPurple.shade800)),
-          const SizedBox(height: 4),
-          Text('Last ${last14.length} days',
-            style: TextStyle(fontSize: 11,
-              color: isDark ? Colors.white38 : Colors.grey.shade500)),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Skin Health Trend',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.white
+                                : Colors.deepPurple.shade800)),
+                    const SizedBox(height: 2),
+                    Text(
+                        'Avg score: ${avgScore.toStringAsFixed(0)}/100',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: scoreColor(avgScore),
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              Row(
+                children: [7, 14, 30].map((d) {
+                  final selected = _trendDays == d;
+                  return GestureDetector(
+                    onTap: () => setState(() => _trendDays = d),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(left: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? Colors.deepPurple
+                            : Colors.deepPurple.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text('${d}d',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: selected
+                                  ? Colors.white
+                                  : Colors.deepPurple.withValues(alpha: 0.6))),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 120,
-            child: LineChart(LineChartData(
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 60,
-                    getTitlesWidget: (val, _) {
-                      final labels = {
-                        1.0: 'Acne',
-                        2.0: 'Oily',
-                        3.0: 'Normal',
-                        4.0: 'Dry',
-                      };
-                      return Text(labels[val] ?? '',
-                        style: TextStyle(fontSize: 9,
-                          color: isDark ? Colors.white38 : Colors.grey));
-                    },
+          if (spots.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text('No data for this range',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white38 : Colors.grey.shade400)),
+              ),
+            )
+          else
+            SizedBox(
+              height: 130,
+              child: LineChart(LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 25,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    strokeWidth: 1,
                   ),
                 ),
-                bottomTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false)),
-              ),
-              minY: 0.5, maxY: 4.5,
-              lineBarsData: [
-                LineChartBarData(
-                  spots: spots,
-                  isCurved: true,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
-                  barWidth: 2.5,
-                  dotData: FlDotData(
-                    getDotPainter: (spot, _, __, ___) =>
-                      FlDotCirclePainter(
-                        radius: 4,
-                        color: const Color(0xFF7B2FBE),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 32,
+                      interval: 25,
+                      getTitlesWidget: (val, _) => Text(
+                        val.toInt().toString(),
+                        style: TextStyle(
+                            fontSize: 9,
+                            color: isDark ? Colors.white38 : Colors.grey),
+                      ),
+                    ),
+                  ),
+                  bottomTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                ),
+                minY: 0,
+                maxY: 100,
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => isDark
+                        ? const Color(0xFF2a1f3d)
+                        : Colors.deepPurple.shade50,
+                    getTooltipItems: (spots) => spots
+                        .map((s) => LineTooltipItem(
+                              '${s.y.toInt()}/100',
+                              const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF7B2FBE)),
+                            ))
+                        .toList(),
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
+                    barWidth: 2.5,
+                    dotData: FlDotData(
+                      show: spots.length <= 14,
+                      getDotPainter: (spot, _, __, ___) => FlDotCirclePainter(
+                        radius: 3.5,
+                        color: scoreColor(spot.y),
                         strokeWidth: 2,
                         strokeColor: Colors.white,
                       ),
-                  ),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        const Color(0xFF7B2FBE).withValues(alpha: 0.2),
-                        const Color(0xFF7B2FBE).withValues(alpha: 0.0),
-                      ],
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0xFF7B2FBE).withValues(alpha: 0.18),
+                          const Color(0xFF7B2FBE).withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            )),
-          ),
+                ],
+              )),
+            ),
         ],
       ),
     );

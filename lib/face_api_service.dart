@@ -125,7 +125,7 @@ class FaceApiService {
               {
                 'type': 'text',
                 'text':
-                    '''You are a dermatology AI. Analyze this face image and assess the skin condition.
+                    '''You are a dermatology AI. Analyze this face image and comprehensively assess the skin condition.
 
 Return ONLY a JSON object with no extra text, no markdown, no backticks:
 {
@@ -134,15 +134,21 @@ Return ONLY a JSON object with no extra text, no markdown, no backticks:
   "zones": ["forehead", "cheeks", "chin", "nose"] (only zones with visible issues),
   "redness": "None" | "Low" | "Moderate" | "High",
   "pigmentation": "None" | "Light" | "Moderate" | "Heavy",
-  "summary": "One sentence describing what you see on the skin"
+  "fine_lines": "None" | "Mild" | "Moderate" | "Visible",
+  "oiliness_score": 0-10 (0=extremely dry, 5=balanced, 10=extremely oily),
+  "pore_visibility": "Minimal" | "Visible" | "Enlarged" | "Large",
+  "texture": "Smooth" | "Slightly Rough" | "Uneven" | "Rough",
+  "hydration": "Dehydrated" | "Normal" | "Well Hydrated",
+  "skin_score": 0-100 (overall skin health where 100=perfect),
+  "summary": "One or two sentences describing what you see on the skin"
 }
 
-Be honest and specific. If the image is unclear, say so in summary but still return valid JSON.'''
+Be honest and specific. If the image is unclear, say so in summary but still return valid JSON with your best estimates.'''
               }
             ]
           }
         ],
-        'max_tokens': 300,
+        'max_tokens': 450,
         'temperature': 0.2,
       }),
     );
@@ -160,11 +166,16 @@ Be honest and specific. If the image is unclear, say so in summary but still ret
         final parsed = jsonDecode(cleaned) as Map<String, dynamic>;
         return {
           'severity': parsed['severity']?.toString() ?? 'Unknown',
-          'breakout_detected':
-              parsed['breakout_detected']?.toString() ?? 'false',
+          'breakout_detected': parsed['breakout_detected']?.toString() ?? 'false',
           'zones': (parsed['zones'] as List?)?.join(', ') ?? 'none',
           'redness': parsed['redness']?.toString() ?? 'None',
           'pigmentation': parsed['pigmentation']?.toString() ?? 'None',
+          'fine_lines': parsed['fine_lines']?.toString() ?? 'Unknown',
+          'oiliness_score': parsed['oiliness_score']?.toString() ?? '5',
+          'pore_visibility': parsed['pore_visibility']?.toString() ?? 'Unknown',
+          'texture': parsed['texture']?.toString() ?? 'Unknown',
+          'hydration': parsed['hydration']?.toString() ?? 'Unknown',
+          'skin_score': parsed['skin_score']?.toString() ?? '50',
           'summary': parsed['summary']?.toString() ?? 'Unable to assess.',
         };
       } catch (_) {

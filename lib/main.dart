@@ -15,6 +15,8 @@ import 'face_api_service.dart';
 import 'theme_provider.dart';
 import 'calendar.dart';
 import 'chatbot.dart';
+import 'skin_school.dart';
+import 'ingredient_database.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -373,6 +375,13 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   String _breakoutSummary = '';
   bool _breakoutDetected = false;
 
+  String _fineLines = '';
+  int _oiliness = 0;
+  String _poreVisibility = '';
+  String _texture = '';
+  String _hydration = '';
+  int _skinScore = 0;
+
   final ScrollController _scrollController = ScrollController();
   final List<String> _skinToneOptions = [
     'Light',
@@ -507,6 +516,12 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
           _breakoutPigmentation = '';
           _breakoutSummary = '';
           _breakoutDetected = false;
+          _fineLines = '';
+          _oiliness = 0;
+          _poreVisibility = '';
+          _texture = '';
+          _hydration = '';
+          _skinScore = 0;
           _loading = true;
         });
         _fadeController.reset();
@@ -562,13 +577,20 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
 
       final prefs = await SharedPreferences.getInstance();
       final dateStr = DateTime.now().toIso8601String().split('T')[0];
+      final newSkinScore = int.tryParse(breakoutData['skin_score'] ?? '50') ?? 50;
       await prefs.setString('progress_$dateStr', correctedType);
       await prefs.setString(
           'log_$dateStr',
           jsonEncode({
             'type': correctedType,
             'color': selectedTone,
-            'tips': result.recommendations
+            'tips': result.recommendations,
+            'skin_score': newSkinScore,
+            'fine_lines': breakoutData['fine_lines'] ?? 'Unknown',
+            'oiliness_score': int.tryParse(breakoutData['oiliness_score'] ?? '5') ?? 5,
+            'pore_visibility': breakoutData['pore_visibility'] ?? 'Unknown',
+            'texture': breakoutData['texture'] ?? 'Unknown',
+            'hydration': breakoutData['hydration'] ?? 'Unknown',
           }));
 
       setState(() {
@@ -586,6 +608,12 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         _breakoutPigmentation = breakoutData['pigmentation'] ?? 'None';
         _breakoutSummary = breakoutData['summary'] ?? '';
         _breakoutDetected = breakoutData['breakout_detected'] == 'true';
+        _fineLines = breakoutData['fine_lines'] ?? 'Unknown';
+        _oiliness = int.tryParse(breakoutData['oiliness_score'] ?? '5') ?? 5;
+        _poreVisibility = breakoutData['pore_visibility'] ?? 'Unknown';
+        _texture = breakoutData['texture'] ?? 'Unknown';
+        _hydration = breakoutData['hydration'] ?? 'Unknown';
+        _skinScore = newSkinScore;
         _loading = false;
       });
 
@@ -773,9 +801,22 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     );
   }
 
+  String _skinScoreLabel(int score) {
+    if (score >= 85) return 'Excellent — keep it up';
+    if (score >= 70) return 'Good — minor concerns only';
+    if (score >= 50) return 'Fair — needs consistent care';
+    if (score >= 30) return 'Concerning — consult a derm';
+    return 'Critical — see a dermatologist';
+  }
+
   Widget _buildBreakoutCard(bool isDark) {
     final color = _severityColor(_breakoutSeverity);
     final icon = _severityIcon(_breakoutSeverity);
+    final scoreColor = _skinScore >= 70
+        ? const Color(0xFF2ED573)
+        : _skinScore >= 50
+            ? const Color(0xFFFFD93D)
+            : const Color(0xFFFF4757);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -863,6 +904,53 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     ),
                 ],
               ),
+              if (_skinScore > 0) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            value: _skinScore / 100.0,
+                            strokeWidth: 6,
+                            backgroundColor: scoreColor.withValues(alpha: 0.15),
+                            valueColor: AlwaysStoppedAnimation<Color>(scoreColor),
+                          ),
+                          Text('$_skinScore',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: scoreColor)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Skin Health Score',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : Colors.black87)),
+                          const SizedBox(height: 4),
+                          Text(_skinScoreLabel(_skinScore),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? Colors.white60
+                                      : Colors.black54)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_breakoutSummary.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(_breakoutSummary,
@@ -883,6 +971,21 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                       const Color(0xFFFF6B9D), isDark),
                   _buildVisionChip('Pigmentation: $_breakoutPigmentation',
                       const Color(0xFF9B4DCA), isDark),
+                  if (_fineLines.isNotEmpty && _fineLines != 'Unknown')
+                    _buildVisionChip('Fine Lines: $_fineLines',
+                        const Color(0xFF818CF8), isDark),
+                  if (_oiliness > 0)
+                    _buildVisionChip('Oiliness: $_oiliness/10',
+                        const Color(0xFFFFD93D), isDark),
+                  if (_poreVisibility.isNotEmpty && _poreVisibility != 'Unknown')
+                    _buildVisionChip('Pores: $_poreVisibility',
+                        const Color(0xFF00D2FF), isDark),
+                  if (_texture.isNotEmpty && _texture != 'Unknown')
+                    _buildVisionChip('Texture: $_texture',
+                        const Color(0xFF2ED573), isDark),
+                  if (_hydration.isNotEmpty && _hydration != 'Unknown')
+                    _buildVisionChip('Hydration: $_hydration',
+                        const Color(0xFF4D96FF), isDark),
                 ],
               ),
             ],
@@ -1003,6 +1106,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     super.dispose();
   }
 
+
   Widget _buildDashboardCards(bool isDark) {
     final user = AuthService.currentUser;
     return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -1031,6 +1135,10 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
               ? List<String>.from(concernsRaw as List)
               : <String>[];
           final aiPlan = skinProfile?['aiPlan'] as String?;
+          final amRoutine = skinProfile?['amRoutine'] as String? ?? '';
+          final pmRoutine = skinProfile?['pmRoutine'] as String? ?? '';
+          final ingredientWarnings =
+              IngredientDatabase.scan('$amRoutine $pmRoutine');
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1085,6 +1193,10 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     ],
                   ),
                 ),
+              ],
+              if (ingredientWarnings.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _buildIngredientWarningsCard(ingredientWarnings, isDark),
               ],
               const SizedBox(height: 20),
               _buildAiDailyTip(skinType, concerns, isDark),
@@ -1302,6 +1414,162 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
     );
   }
 
+  Widget _buildIngredientWarningsCard(
+      List<IngredientWarning> warnings, bool isDark) {
+    const accent = Color(0xFFFF9F43);
+    final danger = warnings.where((w) => w.isDangerous).toList();
+    final caution = warnings.where((w) => !w.isDangerous).toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.35)),
+        gradient: LinearGradient(colors: [
+          accent.withValues(alpha: 0.08),
+          isDark
+              ? const Color(0xFF1e1e2e).withValues(alpha: 0.95)
+              : Colors.white.withValues(alpha: 0.9),
+        ]),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.science_rounded, size: 12, color: accent),
+                  const SizedBox(width: 5),
+                  const Text('Ingredient Scan',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                          letterSpacing: 0.5)),
+                ],
+              ),
+            ),
+            const Spacer(),
+            Text('${warnings.length} flagged',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: accent.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500)),
+          ]),
+          if (danger.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Watch Out',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFFF4757),
+                    letterSpacing: 0.4)),
+            const SizedBox(height: 8),
+            ...danger.take(3).map((w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFF4757),
+                            shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(w.info.name,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87)),
+                            Text(w.info.note,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    height: 1.4,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54)),
+                          ],
+                        ),
+                      ),
+                      if (w.info.comedogenicRating > 0)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8, top: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFFF4757).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text('C${w.info.comedogenicRating}/5',
+                              style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFFFF4757))),
+                        ),
+                    ],
+                  ),
+                )),
+          ],
+          if (caution.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text('Caution',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    letterSpacing: 0.4)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: caution
+                  .take(4)
+                  .map((w) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border:
+                              Border.all(color: accent.withValues(alpha: 0.25)),
+                        ),
+                        child: Text(w.info.name,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: accent,
+                                fontWeight: FontWeight.w600)),
+                      ))
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Text('Based on your logged AM/PM routine',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? Colors.white30 : Colors.black38)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAiPlanPreview(String aiPlan, bool isDark) {
     final preview = aiPlan.length > 200
         ? '${aiPlan.substring(0, 200)}...' : aiPlan;
@@ -1499,6 +1767,14 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                                       child: Image.network(
                                         AuthService.currentUser!.photoURL!,
                                         width: 28, height: 28, fit: BoxFit.cover,
+                                        loadingBuilder: (_, child, progress) =>
+                                            progress == null
+                                                ? child
+                                                : const Icon(Icons.person_rounded,
+                                                    color: Colors.white, size: 18),
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.person_rounded,
+                                                color: Colors.white, size: 18),
                                       ),
                                     )
                                   : const Icon(Icons.person_rounded,
@@ -1585,6 +1861,44 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     ],
                     textColor: Colors.white,
                     iconColor: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+                  _GlowButton(
+                    icon: Icons.school_rounded,
+                    label: 'Skin School',
+                    onTap: () {
+                      final data = _cachedUserData;
+                      final profile = data?['skinProfile'] as Map?;
+                      final skinType = profile?['skinType'] as String? ?? '';
+                      final concerns = (profile?['concerns'] as List?)
+                              ?.cast<String>() ??
+                          [];
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => SkinSchoolScreen(
+                            skinType: skinType,
+                            concerns: concerns,
+                          ),
+                          transitionsBuilder: (_, anim, __, child) =>
+                              FadeTransition(opacity: anim, child: child),
+                          transitionDuration:
+                              const Duration(milliseconds: 350),
+                        ),
+                      );
+                    },
+                    isDark: isDark,
+                    fullWidth: true,
+                    glowColor: const Color(0xFF9B4DCA),
+                    gradientColors: isDark
+                        ? [
+                            const Color(0xFF2a1f3d),
+                            const Color(0xFF1a1a2e),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.white.withValues(alpha: 0.75),
+                          ],
                   ),
                   const SizedBox(height: 20),
                   _buildDashboardCards(isDark),
