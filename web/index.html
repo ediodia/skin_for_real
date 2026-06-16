@@ -918,19 +918,25 @@
       });
       observer.observe(document.body, { childList: true, subtree: true });
 
-      // Dart calls this once the final screen is ready — loader wipes directly into real content
+      const _loaderStart = Date.now();
+
+      // Dart signals ready, but we enforce a minimum 5s demo before wiping.
       window.sfr_appReady = function() {
         if (wipeTriggered) return;
-        clearInterval(progInterval);
-        clearInterval(_demoTimer);
-        prog = 100;
-        progressBar.style.width = '100%';
-        progressLabel.textContent = '100%';
-        requestAnimationFrame(triggerWipe);
+        const wait = Math.max(0, 5000 - (Date.now() - _loaderStart));
+        setTimeout(() => {
+          if (wipeTriggered) return;
+          clearInterval(progInterval);
+          clearInterval(_demoTimer);
+          prog = 100;
+          progressBar.style.width = '100%';
+          progressLabel.textContent = '100%';
+          requestAnimationFrame(triggerWipe);
+        }, wait);
       };
 
-      // Fallback: force wipe after 12s in case sfr_appReady is never called
-      setTimeout(() => { if (!wipeTriggered) window.sfr_appReady(); }, 12000);
+      // Fallback: force wipe after 14s
+      setTimeout(() => { if (!wipeTriggered) window.sfr_appReady(); }, 14000);
 
       function triggerWipe() {
         wipeTriggered = true;
