@@ -35,7 +35,7 @@ class _AuthGateState extends State<AuthGate> {
       stream: AuthService.authStateChanges,
       builder: (context, authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _SplashScreen();
+          return const _BlankScreen();
         }
         final user = authSnapshot.data;
         if (user == null) {
@@ -47,7 +47,7 @@ class _AuthGateState extends State<AuthGate> {
           stream: AuthService.userDocStream(user.uid),
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
-              return const _SplashScreen();
+              return const _BlankScreen();
             }
             if (docSnapshot.hasError) {
               _signalReady();
@@ -63,7 +63,8 @@ class _AuthGateState extends State<AuthGate> {
             _signalReady();
             if (skinProfile == null) return OnboardingWelcomeScreen(user: user);
             final completed = skinProfile['completedAt'] != null ||
-                skinProfile['skipped'] == true;
+                skinProfile['skipped'] == true ||
+                skinProfile['aiPlan'] != null;
             if (!completed) return SkinProfileOnboarding(user: user);
             return const SkinAnalyzer();
           },
@@ -73,75 +74,9 @@ class _AuthGateState extends State<AuthGate> {
   }
 }
 
-class _SplashScreen extends StatefulWidget {
-  const _SplashScreen();
+class _BlankScreen extends StatelessWidget {
+  const _BlankScreen();
   @override
-  State<_SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<_SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulse;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulse = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _scale = Tween<double>(begin: 0.92, end: 1.08).animate(
-        CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0a0a1a),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(
-              scale: _scale,
-              child: Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF7B2FBE), Color(0xFF2F7BBE)]),
-                  boxShadow: [BoxShadow(
-                      color: const Color(0xFF7B2FBE).withValues(alpha: 0.5),
-                      blurRadius: 28, spreadRadius: 2)],
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2.5),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [Color(0xFFB76EF5), Color(0xFF6EE4F5), Color(0xFFF56EB7)],
-              ).createShader(bounds),
-              child: const Text('SkinForReal',
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -0.5)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Scaffold(backgroundColor: Color(0xFF0a0a1a));
 }

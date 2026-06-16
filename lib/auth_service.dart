@@ -22,6 +22,7 @@ class AuthService {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
       googleProvider.addScope('email');
       googleProvider.addScope('profile');
+      googleProvider.setCustomParameters({'prompt': 'select_account'});
       final UserCredential credential = await _auth.signInWithPopup(googleProvider);
       final User? user = credential.user;
       if (user != null) await getOrCreateUserDocument(user);

@@ -395,6 +395,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   late AnimationController _slideController;
   late AnimationController _pulseController;
   late Animation<double> _fadeIn;
+  late Animation<double> _scaleIn;
   late Animation<Offset> _slideIn;
   late Animation<double> _pulse;
 
@@ -402,14 +403,17 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   void initState() {
     super.initState();
     _fadeController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 800));
+        vsync: this, duration: const Duration(milliseconds: 700))
+      ..forward();
     _slideController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
     _pulseController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1500))
       ..repeat(reverse: true);
     _fadeIn =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart);
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic);
+    _scaleIn = Tween<double>(begin: 0.96, end: 1.0).animate(
+        CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic));
     _slideIn = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
         .animate(CurvedAnimation(
             parent: _slideController, curve: Curves.easeOutQuart));
@@ -1646,7 +1650,11 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         ? _parseRecommendations(_tips)
         : <_RecommendationSection>[];
 
-    return Scaffold(
+    return FadeTransition(
+      opacity: _fadeIn,
+      child: ScaleTransition(
+        scale: _scaleIn,
+        child: Scaffold(
       backgroundColor:
           isDark ? const Color(0xFF0a0a1a) : const Color(0xFFF8F0FF),
       floatingActionButton: ScaleTransition(
@@ -1834,23 +1842,21 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     icon: Icons.calendar_month_rounded,
                     label: 'Track Skin Progress',
                     onTap: () {
-                      Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder: (_, __, ___) =>
-                                const SkinProgressCalendar(),
-                            transitionsBuilder: (_, animation, __, child) =>
-                                FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                        begin: const Offset(0, 0.05),
-                                        end: Offset.zero)
-                                    .animate(animation),
-                                child: child,
-                              ),
-                            ),
-                          ));
+                      Navigator.push(context, PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 520),
+                        reverseTransitionDuration: const Duration(milliseconds: 420),
+                        pageBuilder: (_, __, ___) => const SkinProgressCalendar(),
+                        transitionsBuilder: (_, animation, __, child) {
+                          final curve = CurvedAnimation(
+                              parent: animation, curve: Curves.easeOutExpo);
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                                    begin: const Offset(0, 1), end: Offset.zero)
+                                .animate(curve),
+                            child: child,
+                          );
+                        },
+                      ));
                     },
                     isDark: isDark,
                     fullWidth: true,
@@ -1873,19 +1879,26 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                       final concerns = (profile?['concerns'] as List?)
                               ?.cast<String>() ??
                           [];
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder: (_, __, ___) => SkinSchoolScreen(
-                            skinType: skinType,
-                            concerns: concerns,
-                          ),
-                          transitionsBuilder: (_, anim, __, child) =>
-                              FadeTransition(opacity: anim, child: child),
-                          transitionDuration:
-                              const Duration(milliseconds: 350),
+                      Navigator.push(context, PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 450),
+                        reverseTransitionDuration: const Duration(milliseconds: 350),
+                        pageBuilder: (_, __, ___) => SkinSchoolScreen(
+                          skinType: skinType,
+                          concerns: concerns,
                         ),
-                      );
+                        transitionsBuilder: (_, animation, __, child) {
+                          final curve = CurvedAnimation(
+                              parent: animation, curve: Curves.easeOutCubic);
+                          return FadeTransition(
+                            opacity: curve,
+                            child: ScaleTransition(
+                              scale: Tween<double>(begin: 0.90, end: 1.0)
+                                  .animate(curve),
+                              child: child,
+                            ),
+                          );
+                        },
+                      ));
                     },
                     isDark: isDark,
                     fullWidth: true,
@@ -2192,7 +2205,9 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
           ),
         ),
       ),
-    );
+    ),   // Scaffold
+      ), // ScaleTransition
+    );   // FadeTransition
   }
 }
 
