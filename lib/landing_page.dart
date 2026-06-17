@@ -15,10 +15,10 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
   String? _errorMessage;
   bool _showEmailForm = false;
   bool _isSignUp = false;
-  bool _signingInMicrosoft = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  bool _signingInMicrosoft = false;
   bool _obscurePassword = true;
 
   late AnimationController _g1, _g2, _g3, _fadeController, _pulseController;
@@ -293,6 +293,7 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
     );
   }
 
+
   Widget _microsoftButton() {
     return GestureDetector(
       onTap: _signingInMicrosoft ? null : _handleMicrosoftSignIn,
@@ -325,6 +326,26 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
               ]),
       ),
     );
+  }
+
+  Future<void> _handleMicrosoftSignIn() async {
+    setState(() { _signingInMicrosoft = true; _errorMessage = null; });
+    try {
+      final user = await AuthService.signInWithMicrosoft();
+      if (user != null) {
+        SoundService.success();
+      } else if (mounted) {
+        setState(() => _signingInMicrosoft = false);
+      }
+    } catch (e) {
+      SoundService.error();
+      if (mounted) {
+        setState(() {
+          _signingInMicrosoft = false;
+          _errorMessage = _friendlyError(e.toString());
+        });
+      }
+    }
   }
 
   Widget _emailForm() {
@@ -430,21 +451,6 @@ class _LandingPageState extends State<LandingPage> with TickerProviderStateMixin
         ),
       ),
     );
-  }
-
-  Future<void> _handleMicrosoftSignIn() async {
-    setState(() { _signingInMicrosoft = true; _errorMessage = null; });
-    try {
-      final user = await AuthService.signInWithMicrosoft();
-      if (user == null && mounted) { setState(() => _signingInMicrosoft = false); }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _signingInMicrosoft = false;
-          _errorMessage = _friendlyError(e.toString());
-        });
-      }
-    }
   }
 
   Future<void> _handleEmailAuth() async {

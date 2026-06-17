@@ -130,6 +130,10 @@ class AuthService {
       final OAuthProvider provider = OAuthProvider('microsoft.com');
       provider.addScope('email');
       provider.addScope('profile');
+      provider.setCustomParameters({
+        'tenant': 'consumers',
+        'prompt': 'select_account',
+      });
       final UserCredential credential = await _auth.signInWithPopup(provider);
       if (credential.user != null) {
         await getOrCreateUserDocument(credential.user!);
