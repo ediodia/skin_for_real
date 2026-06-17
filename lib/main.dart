@@ -529,7 +529,6 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
           _skinScore = 0;
           _loading = true;
         });
-        _fadeController.reset();
         _slideController.reset();
         await _analyzeImage(pickedFile);
       }
@@ -622,7 +621,6 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         _loading = false;
       });
 
-      _fadeController.forward();
       _slideController.forward();
     } catch (e) {
       setState(() {
@@ -647,7 +645,6 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
       _analysisResult = result;
       _loading = false;
     });
-    _fadeController.forward(from: 0);
   }
 
   Widget _buildProductCards(
