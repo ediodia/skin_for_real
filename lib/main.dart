@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_gate.dart';
 import 'auth_service.dart';
+import 'community_feed.dart';
 import 'profile_hub.dart';
 import 'sound_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1842,6 +1843,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     icon: Icons.calendar_month_rounded,
                     label: 'Track Skin Progress',
                     onTap: () {
+                      SoundService.whoosh();
                       Navigator.push(context, PageRouteBuilder(
                         transitionDuration: const Duration(milliseconds: 520),
                         reverseTransitionDuration: const Duration(milliseconds: 420),
@@ -1873,6 +1875,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     icon: Icons.school_rounded,
                     label: 'Skin School',
                     onTap: () {
+                      SoundService.whoosh();
                       final data = _cachedUserData;
                       final profile = data?['skinProfile'] as Map?;
                       final skinType = profile?['skinType'] as String? ?? '';
@@ -1906,6 +1909,41 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
                     gradientColors: isDark
                         ? [
                             const Color(0xFF2a1f3d),
+                            const Color(0xFF1a1a2e),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.white.withValues(alpha: 0.75),
+                          ],
+                  ),
+                  const SizedBox(height: 12),
+                  _GlowButton(
+                    icon: Icons.people_rounded,
+                    label: 'Community',
+                    onTap: () {
+                      SoundService.whoosh();
+                      Navigator.push(context, PageRouteBuilder(
+                        transitionDuration: const Duration(milliseconds: 480),
+                        reverseTransitionDuration: const Duration(milliseconds: 360),
+                        pageBuilder: (_, __, ___) => const CommunityFeedScreen(),
+                        transitionsBuilder: (_, animation, __, child) {
+                          final curve = CurvedAnimation(
+                              parent: animation, curve: Curves.easeOutExpo);
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                                    begin: const Offset(1, 0), end: Offset.zero)
+                                .animate(curve),
+                            child: child,
+                          );
+                        },
+                      ));
+                    },
+                    isDark: isDark,
+                    fullWidth: true,
+                    glowColor: const Color(0xFFFF6B9D),
+                    gradientColors: isDark
+                        ? [
+                            const Color(0xFF3d1f2a),
                             const Color(0xFF1a1a2e),
                           ]
                         : [

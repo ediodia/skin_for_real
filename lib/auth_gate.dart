@@ -47,7 +47,8 @@ class _AuthGateState extends State<AuthGate> {
           stream: AuthService.userDocStream(user.uid),
           builder: (context, docSnapshot) {
             if (docSnapshot.connectionState == ConnectionState.waiting) {
-              return const _BlankScreen();
+              _signalReady();
+              return const SkinAnalyzer();
             }
             if (docSnapshot.hasError) {
               _signalReady();

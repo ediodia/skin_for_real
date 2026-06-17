@@ -1329,7 +1329,25 @@
         });
       };
 
-      // ── 8. Loader done ────────────────────────────────────────────────────
+      // ── 8. Whoosh — screen navigation ────────────────────────────────────
+      window.sfr_soundWhoosh = function () {
+        const ctx = getCtx();
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        const f = ctx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.35);
+        f.type = 'bandpass'; f.frequency.value = 600; f.Q.value = 1.5;
+        g.gain.setValueAtTime(0.001, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 0.06);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+        osc.connect(f); f.connect(g); g.connect(getSfxGain());
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+      };
+
+      // ── 9. Loader done ────────────────────────────────────────────────────
       window.sfr_soundLoaderDone = function () {
         const ctx = getCtx();
         const bufSize = ctx.sampleRate * 0.4;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'auth_service.dart';
 import 'calendar.dart';
+import 'sound_service.dart';
 
 class ProfileHub extends StatefulWidget {
   final Map<String, dynamic>? preloadedData;
@@ -206,17 +207,22 @@ class _ProfileHubState extends State<ProfileHub>
                         'View your skin journey',
                         const Color(0xFF9B4DCA),
                         () async {
+                          SoundService.whoosh();
+                          final nav = Navigator.of(context);
                           await _slideController.reverse();
-                          if (mounted) {
-                            Navigator.of(context).pop();
-                            Navigator.of(context).push(PageRouteBuilder(
-                              pageBuilder: (_, __, ___) =>
-                                  const SkinProgressCalendar(),
-                              transitionsBuilder: (_, animation, __, child) =>
-                                  FadeTransition(
-                                      opacity: animation, child: child),
-                            ));
-                          }
+                          if (!mounted) return;
+                          nav.pop();
+                          nav.push(PageRouteBuilder(
+                            transitionDuration: const Duration(milliseconds: 420),
+                            pageBuilder: (_, __, ___) => const SkinProgressCalendar(),
+                            transitionsBuilder: (_, animation, __, child) {
+                              final curve = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+                              return SlideTransition(
+                                position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(curve),
+                                child: child,
+                              );
+                            },
+                          ));
                         },
                       ),
                       const SizedBox(height: 10),
@@ -226,22 +232,25 @@ class _ProfileHubState extends State<ProfileHub>
                         'Update your skin type and concerns',
                         const Color(0xFF00D2FF),
                         () async {
+                          SoundService.advance();
+                          final nav = Navigator.of(context);
                           await _slideController.reverse();
-                          if (mounted) {
-                            Navigator.of(context).pop();
-                            final user = AuthService.currentUser;
-                            if (user != null) {
-                              await AuthService.saveSkinProfile(
-                                uid: user.uid,
-                                skinProfile: {
-                                  'skinType': null,
-                                  'concerns': [],
-                                  'amRoutine': '',
-                                  'pmRoutine': '',
-                                  'completedAt': null,
-                                },
-                              );
-                            }
+                          if (!mounted) return;
+                          nav.pop();
+                          final user = AuthService.currentUser;
+                          if (user != null) {
+                            await AuthService.saveSkinProfile(
+                              uid: user.uid,
+                              skinProfile: {
+                                'skinType': null,
+                                'concerns': [],
+                                'amRoutine': '',
+                                'pmRoutine': '',
+                                'completedAt': null,
+                                'aiPlan': null,
+                                'skipped': null,
+                              },
+                            );
                           }
                         },
                       ),
@@ -251,7 +260,7 @@ class _ProfileHubState extends State<ProfileHub>
                         'Reminders',
                         'Coming soon',
                         const Color(0xFFFF9F43),
-                        () {},
+                        () => SoundService.tap(),
                       ),
                       const SizedBox(height: 32),
                       GestureDetector(
