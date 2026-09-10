@@ -100,7 +100,7 @@ User Profile:
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
+          'model': 'qwen/qwen3.6-27b',
           'max_tokens': 1000,
           'messages': [
             {'role': 'user', 'content': prompt}

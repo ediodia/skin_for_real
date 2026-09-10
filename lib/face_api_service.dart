@@ -281,7 +281,7 @@ CRITICAL RULES:
       Uri.parse(_groqProxy),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'model': 'llama-3.3-70b-versatile',
+        'model': 'qwen/qwen3.6-27b',
         'messages': [
           {'role': 'user', 'content': prompt}
         ],

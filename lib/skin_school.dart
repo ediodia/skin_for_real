@@ -120,7 +120,7 @@ class _SkinSchoolScreenState extends State<SkinSchoolScreen>
         Uri.parse(_proxyUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
+          'model': 'qwen/qwen3.6-27b',
           'max_tokens': 700,
           'messages': [
             {

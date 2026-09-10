@@ -92,7 +92,7 @@ Always give personalized advice based on their specific skin type and tone. Be f
         Uri.parse(_groqProxy),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
+          'model': 'qwen/qwen3.6-27b',
           'messages': messages,
           'max_tokens': 300,
           'temperature': 0.7,
