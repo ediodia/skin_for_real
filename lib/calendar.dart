@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'ai_text.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,14 +82,7 @@ class _SkinProgressCalendarState extends State<SkinProgressCalendar> with Single
     setState(() => _entries = {});
   }
 
-  String _cleanText(String text) {
-    return text
-        .replaceAll('**', '')
-        .replaceAll('###', '')
-        .replaceAll('##', '')
-        .replaceAll('#', '')
-        .replaceAll(RegExp(r'[^\x00-\x7F\n\r\t ]'), '');
-  }
+  String _cleanText(String text) => cleanAiText(text);
 
   Color _getTypeColor(String? type) => _typeColors[type] ?? const Color(0xFF4D96FF);
   IconData _getTypeIcon(String? type) => _typeIcons[type] ?? Icons.face_rounded;

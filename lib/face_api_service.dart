@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'ai_text.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,6 +59,7 @@ class FaceApiService {
   static const String _groqProxy = 'https://groqchat-yp4lhrod3q-uc.a.run.app';
 
   static Uint8List? _lastImageBytes;
+  static Map<String, String>? _lastBreakoutData;
 
   static Future<Map<String, dynamic>> analyzeFaceFromImage(
       XFile imageFile) async {
@@ -65,15 +67,20 @@ class FaceApiService {
         '$_faceProxy?returnFaceAttributes=blur,exposure,noise,occlusion,glasses,headPose');
     final bytes = await imageFile.readAsBytes();
     _lastImageBytes = bytes;
+    _lastBreakoutData = null;
 
     final response = await http.post(
       uri,
       headers: {'Content-Type': 'application/octet-stream'},
       body: bytes,
-    );
+    ).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw Exception('Face detection service could not process this image. Please try again.');
+      }
+      final List<dynamic> data = decoded;
       if (data.isNotEmpty && data[0]['faceAttributes'] != null) {
         return data[0]['faceAttributes'];
       } else {
@@ -103,24 +110,33 @@ class FaceApiService {
   }
 
   static Future<Map<String, String>> analyzeBreakoutsFromImage() async {
+    if (_lastBreakoutData != null) return Map.of(_lastBreakoutData!);
     if (_lastImageBytes == null) {
-      return {'severity': 'Unknown', 'summary': 'No image available.'};
+      throw Exception('No image available. Please select a photo again.');
     }
 
     final base64Image = base64Encode(_lastImageBytes!);
+    final bytes = _lastImageBytes!;
+    final mime = bytes.length >= 4 && bytes[0] == 0x89 && bytes[1] == 0x50
+        ? 'image/png'
+        : bytes.length >= 12 && ascii.decode(bytes.sublist(8, 12), allowInvalid: true) == 'WEBP'
+            ? 'image/webp'
+            : 'image/jpeg';
 
     final response = await http.post(
       Uri.parse(_groqProxy),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'model': 'meta-llama/llama-4-scout-17b-16e-instruct',
+        'model': 'qwen/qwen3.8-27b',
+        'reasoning_effort': 'none',
+        'response_format': {'type': 'json_object'},
         'messages': [
           {
             'role': 'user',
             'content': [
               {
                 'type': 'image_url',
-                'image_url': {'url': 'data:image/jpeg;base64,$base64Image'},
+                'image_url': {'url': 'data:$mime;base64,$base64Image'},
               },
               {
                 'type': 'text',
@@ -143,46 +159,66 @@ Return ONLY a JSON object with no extra text, no markdown, no backticks:
   "summary": "One or two sentences describing what you see on the skin"
 }
 
-Be honest and specific. If the image is unclear, say so in summary but still return valid JSON with your best estimates.'''
+Be honest and specific. These are cosmetic observations, not a diagnosis. If there is no clearly visible face or the image cannot be assessed, return only {"error":"Please use a clear, well-lit photo of your face."}. Do not invent observations.'''
               }
             ]
           }
         ],
-        'max_tokens': 450,
+        'max_tokens': 1200,
         'temperature': 0.2,
       }),
-    );
+    ).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      if (data['error'] != null) {
+        throw Exception('Vision service: ${data['error']['message'] ?? data['error']}');
+      }
       final choices = data['choices'];
       if (choices == null || (choices as List).isEmpty) {
-        return {'severity': 'Unknown', 'summary': 'Vision analysis failed.'};
+        throw Exception('Vision service returned no analysis. Please try again.');
       }
       final content = choices[0]['message']['content'] as String;
       try {
         final cleaned =
             content.replaceAll('```json', '').replaceAll('```', '').trim();
         final parsed = jsonDecode(cleaned) as Map<String, dynamic>;
-        return {
+        if (parsed['error'] != null) throw FormatException(parsed['error'].toString());
+        if (!['Clear', 'Mild', 'Moderate', 'Active Breakout'].contains(parsed['severity']) ||
+            parsed['breakout_detected'] is! bool || parsed['zones'] is! List ||
+            parsed['summary'] is! String || (parsed['summary'] as String).trim().isEmpty ||
+            parsed['skin_score'] is! num || parsed['oiliness_score'] is! num ||
+            (parsed['skin_score'] as num) < 0 || (parsed['skin_score'] as num) > 100 ||
+            (parsed['oiliness_score'] as num) < 0 || (parsed['oiliness_score'] as num) > 10) {
+          throw const FormatException('Incomplete vision analysis. Please try again.');
+        }
+        for (final field in ['redness', 'pigmentation', 'fine_lines',
+          'pore_visibility', 'texture', 'hydration']) {
+          if (parsed[field] is! String || (parsed[field] as String).trim().isEmpty) {
+            throw const FormatException('Incomplete vision analysis. Please try again.');
+          }
+        }
+        final result = <String, String>{
           'severity': parsed['severity']?.toString() ?? 'Unknown',
           'breakout_detected': parsed['breakout_detected']?.toString() ?? 'false',
           'zones': (parsed['zones'] as List?)?.join(', ') ?? 'none',
           'redness': parsed['redness']?.toString() ?? 'None',
           'pigmentation': parsed['pigmentation']?.toString() ?? 'None',
           'fine_lines': parsed['fine_lines']?.toString() ?? 'Unknown',
-          'oiliness_score': parsed['oiliness_score']?.toString() ?? '5',
+          'oiliness_score': (parsed['oiliness_score'] as num).round().toString(),
           'pore_visibility': parsed['pore_visibility']?.toString() ?? 'Unknown',
           'texture': parsed['texture']?.toString() ?? 'Unknown',
           'hydration': parsed['hydration']?.toString() ?? 'Unknown',
-          'skin_score': parsed['skin_score']?.toString() ?? '50',
+          'skin_score': (parsed['skin_score'] as num).round().toString(),
           'summary': parsed['summary']?.toString() ?? 'Unable to assess.',
         };
-      } catch (_) {
-        return {'severity': 'Unknown', 'summary': content};
+        _lastBreakoutData = result;
+        return Map.of(result);
+      } on FormatException catch (e) {
+        throw Exception('Vision analysis could not be completed: ${e.message}');
       }
     } else {
-      return {'severity': 'Unknown', 'summary': 'Vision analysis failed.'};
+      throw Exception('Vision service failed (${response.statusCode}). Please try again.');
     }
   }
 
@@ -199,8 +235,8 @@ Be honest and specific. If the image is unclear, say so in summary but still ret
   }
 
   static Future<SkinAnalysisResult> getAIRecommendations(
-      String skinType, String skinTone) async {
-    final breakoutData = await analyzeBreakoutsFromImage();
+      String skinType, String skinTone, {Map<String, String>? breakoutData}) async {
+    breakoutData ??= await analyzeBreakoutsFromImage();
     final severity = breakoutData['severity'] ?? 'Unknown';
     final zones = breakoutData['zones'] ?? 'none';
     final redness = breakoutData['redness'] ?? 'None';
@@ -285,10 +321,11 @@ CRITICAL RULES:
         'messages': [
           {'role': 'user', 'content': prompt}
         ],
-        'max_tokens': 4500,
-        'temperature': 0.75,
+        'reasoning_effort': 'low',
+        'max_tokens': 8000,
+        'temperature': 0.4,
       }),
-    );
+    ).timeout(const Duration(seconds: 90));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -296,10 +333,17 @@ CRITICAL RULES:
       if (choices == null || (choices as List).isEmpty) {
         throw Exception('Groq returned empty response');
       }
-      final fullContent = choices[0]['message']['content'] as String;
+      if (choices[0]['finish_reason'] == 'length') {
+        throw Exception('Recommendations were incomplete. Please try again.');
+      }
+      final fullContent = cleanAiText(choices[0]['message']['content'] as String);
+      if (fullContent.isEmpty) throw Exception('Recommendations were empty. Please try again.');
 
       const delimiter = '---PRODUCTS_JSON---';
       final parts = fullContent.split(delimiter);
+      if (parts.length != 2 || parts[0].trim().isEmpty) {
+        throw Exception('The skincare plan was incomplete. Please try again.');
+      }
 
       final recommendations = parts[0].trim();
       List<RecommendedProduct> morningProducts = [];
@@ -319,7 +363,9 @@ CRITICAL RULES:
           eveningProducts = _parseProducts(parsed['evening']);
           powerProducts = _parseProducts(parsed['power_ingredients']);
           retinoidProducts = _parseProducts(parsed['retinoids']);
-        } catch (_) {}
+        } catch (_) {
+          throw Exception('The product list was incomplete. Please try again.');
+        }
       }
 
       return SkinAnalysisResult(

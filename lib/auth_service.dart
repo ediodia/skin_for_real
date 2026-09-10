@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'scan_streak.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -48,9 +49,9 @@ class AuthService {
         'email': user.email ?? '',
         'displayName': user.displayName ?? '',
         'photoURL': user.photoURL,
-        'createdAt': FieldValue.serverTimestamp(),
-        'streak': 0,
-        'lastCheckIn': null,
+        if (isNew) 'createdAt': FieldValue.serverTimestamp(),
+        if (isNew) 'streak': 0,
+        if (isNew) 'lastCheckIn': null,
         if (isNew) 'skinProfile': null,
       },
       SetOptions(merge: true),
@@ -59,6 +60,24 @@ class AuthService {
     if (isNew) {
       _sendWelcomeEmail(user.email ?? '', user.displayName ?? '');
     }
+  }
+
+  static Future<void> recordSuccessfulScan(String uid, DateTime completedAt) async {
+    final ref = _db.collection('users').doc(uid);
+    final today = completedAt.toIso8601String().split('T').first;
+    await _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data() ?? {};
+      final lastDay = data['lastScanDay'] as String?;
+      // A transaction prevents simultaneous scans from awarding the same day twice.
+      if (lastDay != null && lastDay.compareTo(today) >= 0) return;
+      transaction.set(ref, {
+        'streak': nextScanStreak((data['streak'] as num?)?.toInt() ?? 0,
+            lastDay, completedAt),
+        'lastScanDay': today,
+        'lastCheckIn': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    });
   }
 
   static void _sendWelcomeEmail(String email, String displayName) {

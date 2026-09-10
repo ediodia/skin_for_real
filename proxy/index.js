@@ -37,7 +37,7 @@ exports.analyzeface = onRequest(
       const text = await response.text();
       try {
         const data = JSON.parse(text);
-        res.json(data);
+        res.status(response.status).json(data);
       } catch {
         res.status(500).json({ error: 'Azure returned invalid JSON', raw: text });
       }
@@ -70,7 +70,7 @@ exports.claudechat = onRequest(
         body: JSON.stringify(req.body),
       });
       const data = await response.json();
-      res.json(data);
+      res.status(response.status).json(data);
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -99,7 +99,7 @@ exports.groqchat = onRequest(
         body: JSON.stringify(req.body),
       });
       const data = await response.json();
-      res.json(data);
+      res.status(response.status).json(data);
     } catch (e) {
       res.status(500).json({ error: e.message });
     }

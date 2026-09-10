@@ -90,7 +90,10 @@ class _ProfileHubState extends State<ProfileHub>
             ),
           ],
         ),
-        child: SafeArea(
+        // Dialog routes need a Material ancestor for their default text style.
+        child: Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -304,6 +307,7 @@ class _ProfileHubState extends State<ProfileHub>
                     ],
                   ),
                 ),
+          ),
         ),
       ),
     );

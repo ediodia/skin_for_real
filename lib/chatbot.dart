@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'ai_text.dart';
 
 class SkinChatbot extends StatefulWidget {
   final String skinType;
@@ -55,11 +56,7 @@ class _SkinChatbotState extends State<SkinChatbot>
     super.dispose();
   }
 
-  String _cleanText(String text) {
-    return text
-        .replaceAll('**', '')
-        .replaceAll(RegExp(r'[^\x00-\x7F\n\r\t ]'), '');
-  }
+  String _cleanText(String text) => cleanAiText(text);
 
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;

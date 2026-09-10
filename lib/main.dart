@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'ai_text.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_gate.dart';
@@ -364,6 +365,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   String _manualOverrideTone = '';
   String _lastSkinType = '';
   bool _loading = false;
+  bool _pickingImage = false;
   String _debugError = '';
   Map<String, dynamic>? _cachedUserData;
   double _debugExposure = 0.0;
@@ -428,11 +430,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   }
 
   String _cleanText(String text) {
-    return text
-        .replaceAll('**', '')
-        .replaceAll('***', '')
-        .replaceAll(RegExp(r'#+\s?'), '')
-        .replaceAll(RegExp(r'[^\x00-\x7F\n\r\t ]'), '');
+    return cleanAiText(text);
   }
 
   Color _severityColor(String severity) {
@@ -482,6 +480,8 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
   }
 
   Future<void> _pickImageFromSource(ImageSource source) async {
+    if (_loading || _pickingImage) return;
+    _pickingImage = true;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -504,8 +504,9 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
       ),
     ).then((_) async {
       final pickedFile =
-          await ImagePicker().pickImage(source: source, imageQuality: 90);
-      if (pickedFile != null) {
+          await ImagePicker().pickImage(source: source, imageQuality: 90,
+              maxWidth: 1600, maxHeight: 1600);
+      if (pickedFile != null && mounted) {
         setState(() {
           _imageFile = pickedFile;
           _skinColor = '';
@@ -532,10 +533,11 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
         _slideController.reset();
         await _analyzeImage(pickedFile);
       }
-    });
+    }).whenComplete(() => _pickingImage = false);
   }
 
   Future<void> _analyzeImage(XFile image) async {
+    final scanUserId = AuthService.currentUser?.uid;
     try {
       final attributes = await FaceApiService.analyzeFaceFromImage(image);
 
@@ -577,10 +579,12 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
               : type;
 
       final result =
-          await FaceApiService.getAIRecommendations(correctedType, selectedTone);
+          await FaceApiService.getAIRecommendations(correctedType, selectedTone,
+              breakoutData: breakoutData);
 
       final prefs = await SharedPreferences.getInstance();
-      final dateStr = DateTime.now().toIso8601String().split('T')[0];
+      final completedAt = DateTime.now();
+      final dateStr = completedAt.toIso8601String().split('T')[0];
       final newSkinScore = int.tryParse(breakoutData['skin_score'] ?? '50') ?? 50;
       await prefs.setString('progress_$dateStr', correctedType);
       await prefs.setString(
@@ -597,6 +601,13 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
             'hydration': breakoutData['hydration'] ?? 'Unknown',
           }));
 
+      if (scanUserId != null) {
+        if (AuthService.currentUser?.uid != scanUserId) {
+          throw Exception('Account changed during scan. Please scan again.');
+        }
+        await AuthService.recordSuccessfulScan(scanUserId, completedAt);
+      }
+      if (!mounted) return;
       setState(() {
         _skinColor = tone;
         _skinType = correctedType;
@@ -623,6 +634,7 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
 
       _slideController.forward();
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _skinColor = 'Error';
         _skinType = 'Error';
@@ -639,12 +651,21 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
       _manualOverrideTone = tone;
       _loading = true;
     });
-    final result = await FaceApiService.getAIRecommendations(_skinType, tone);
-    setState(() {
-      _tips = _cleanText(result.recommendations);
-      _analysisResult = result;
-      _loading = false;
-    });
+    try {
+      final result = await FaceApiService.getAIRecommendations(_skinType, tone);
+      if (!mounted) return;
+      setState(() {
+        _tips = _cleanText(result.recommendations);
+        _analysisResult = result;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _debugError = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Widget _buildProductCards(
@@ -1082,7 +1103,8 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
               ),
               const SizedBox(height: 12),
               SelectableText(
-                section.content,
+                section.content.replaceAllMapped(
+                    RegExp(r'\n(?=\d+[.)]\s)'), (_) => '\n\n'),
                 style: TextStyle(
                     fontSize: 14,
                     height: 1.75,
@@ -1111,8 +1133,8 @@ class _SkinAnalyzerState extends State<SkinAnalyzer>
 
   Widget _buildDashboardCards(bool isDark) {
     final user = AuthService.currentUser;
-    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      future: user != null ? AuthService.getUserDoc(user.uid) : null,
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: user != null ? AuthService.userDocStream(user.uid) : null,
       builder: (context, snapshot) {
         try {
           if (snapshot.connectionState == ConnectionState.waiting) {
