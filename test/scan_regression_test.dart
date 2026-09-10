@@ -45,6 +45,7 @@ void main() {
               final body = jsonDecode(request.body);
               expect(body['model'], 'qwen/qwen3.8-27b');
               expect(body['reasoning_effort'], 'none');
+              expect(body['max_tokens'], 600);
               expect(body['messages'][0]['content'][0]['image_url']['url'],
                   startsWith('data:image/png;base64,'));
               return http.Response(jsonEncode(payload), status);

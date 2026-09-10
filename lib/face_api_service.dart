@@ -164,7 +164,9 @@ Be honest and specific. These are cosmetic observations, not a diagnosis. If the
             ]
           }
         ],
-        'max_tokens': 1200,
+        // Keep below the account's 1,000 output-token-per-minute limit.
+        // Thinking is disabled; the compact observation JSON fits this budget.
+        'max_tokens': 600,
         'temperature': 0.2,
       }),
     ).timeout(const Duration(seconds: 60));
