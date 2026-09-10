@@ -24,7 +24,7 @@ exports.claudeProxy = onRequest({
   }
 
   const body = JSON.stringify({
-    model: req.body.model || 'qwen/qwen3.6-27b',
+    model: req.body.model || 'openai/gpt-oss-120b',
     max_tokens: req.body.max_tokens || 2048,
     temperature: req.body.temperature,
     messages: req.body.messages,

@@ -120,7 +120,7 @@ class _SkinSchoolScreenState extends State<SkinSchoolScreen>
         Uri.parse(_proxyUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'qwen/qwen3.6-27b',
+          'model': 'openai/gpt-oss-120b',
           'max_tokens': 700,
           'messages': [
             {

@@ -100,7 +100,7 @@ User Profile:
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'model': 'qwen/qwen3.6-27b',
+          'model': 'openai/gpt-oss-120b',
           'max_tokens': 1000,
           'messages': [
             {'role': 'user', 'content': prompt}

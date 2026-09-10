@@ -19,7 +19,7 @@ It analyzes selfies to detect dryness, acne, irritation, and inflammation using 
 
 ## Role
 **Lead Developer** – [Ediale Odia](https://www.linkedin.com/in/ediale-odia-4282ba267/)  
-Presented in collaboration with: [Rani Rajkumar](https://github.com/ranitarajkumar)
+Presented in collaboration with: [Rani Rajkumar](https://www.linkedin.com/in/ranita-h-rajkumar/)
 
 ## Awards
 **Bitcamp 2025 – Best Use of GenAI in Business (3rd Place)**
